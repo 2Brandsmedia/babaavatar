@@ -7,6 +7,8 @@ import { STEPS, computeSkippedSteps, type StepId } from './steps';
 import { CalibrationStepView } from './CalibrationStepView';
 import { ActionBox, NavBar } from './calibration-ui';
 import { SkipBanner, StepBar } from './StepBar';
+import { StepHero } from './StepHero';
+import { ProgressArc } from './ProgressArc';
 
 interface CalibrationWizardProps {
   activeAvatarId: string | null;
@@ -142,14 +144,17 @@ export const CalibrationWizard = memo(function CalibrationWizard({
     );
   }
 
+  const activeStepNumber = stepIndex + 1;
+  const completedCount = completed.size;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <header>
-        <h2 style={{ margin: 0 }}>Kalibrierung</h2>
-        <p style={{ color: '#a0a0a8', margin: '4px 0 0 0' }}>
-          Schritt {stepIndex + 1} von {total}: {current.title}
-        </p>
-      </header>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <ProgressArc current={completedCount} total={total} />
+        <div style={{ flex: 1 }}>
+          <StepHero step={current} position={activeStepNumber} total={total} />
+        </div>
+      </div>
 
       <StepBar
         activeIndex={stepIndex}

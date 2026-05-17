@@ -14,6 +14,7 @@ import { Sidebar, type SidebarSection } from '@renderer/components/Sidebar';
 import { StatusBar } from '@renderer/components/StatusBar';
 import { CreditsModal } from '@renderer/components/CreditsModal';
 import { GlobalTrackingHost } from '@renderer/components/GlobalTrackingHost';
+import { UpdaterOverlay } from '@renderer/components/updater/UpdaterOverlay';
 import { AvatarsSection } from '@renderer/components/avatars/AvatarsSection';
 import { TrackingPanel } from '@renderer/components/TrackingPanel';
 import { CalibrationWizard } from '@renderer/components/calibration/CalibrationWizard';
@@ -117,6 +118,7 @@ export function App(): JSX.Element {
         />
         {showCredits && <CreditsModal onClose={() => setShowCredits(false)} />}
       </ControlLayout>
+      <UpdaterOverlay />
     </>
   );
 }

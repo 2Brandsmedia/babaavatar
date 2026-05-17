@@ -3,21 +3,89 @@ import type { TrackingSource } from '@shared/types';
 export interface CalibrationStep {
   id: StepId;
   title: string;
+  subtitle: string;
+  icon: string;
   category: 'intro' | 'device' | 'avatar' | 'face' | 'hands' | 'outro';
 }
 
 export const STEPS: ReadonlyArray<CalibrationStep> = [
-  { id: 'welcome', title: 'Willkommen', category: 'intro' },
-  { id: 'camera', title: 'Kamera', category: 'device' },
-  { id: 'microphone', title: 'Mikrofon', category: 'device' },
-  { id: 'avatar', title: 'Avatar', category: 'avatar' },
-  { id: 'neutral', title: 'Neutrale Pose', category: 'face' },
-  { id: 'mouth', title: 'Mund', category: 'face' },
-  { id: 'eyes', title: 'Augen', category: 'face' },
-  { id: 'brows', title: 'Augenbrauen', category: 'face' },
-  { id: 'smile', title: 'Lächeln', category: 'face' },
-  { id: 'hands', title: 'Hände', category: 'hands' },
-  { id: 'done', title: 'Fertig', category: 'outro' },
+  {
+    id: 'welcome',
+    title: 'Willkommen',
+    subtitle: 'Wir richten dein Tracking in wenigen Schritten ein.',
+    icon: '👋',
+    category: 'intro',
+  },
+  {
+    id: 'camera',
+    title: 'Kamera wählen',
+    subtitle: 'Welche Webcam soll dein Gesicht aufnehmen?',
+    icon: '📷',
+    category: 'device',
+  },
+  {
+    id: 'microphone',
+    title: 'Mikrofon wählen',
+    subtitle: 'Wir nutzen es für Lipsync, wenn du sprichst.',
+    icon: '🎙',
+    category: 'device',
+  },
+  {
+    id: 'avatar',
+    title: 'Avatar auswählen',
+    subtitle: 'Lade einen VRM-Avatar aus deiner Bibliothek.',
+    icon: '🎭',
+    category: 'avatar',
+  },
+  {
+    id: 'neutral',
+    title: 'Neutrale Pose',
+    subtitle: 'Schau entspannt in die Kamera, Mund geschlossen.',
+    icon: '😐',
+    category: 'face',
+  },
+  {
+    id: 'mouth',
+    title: 'Mund-Bewegung',
+    subtitle: 'Öffne den Mund weit, halt kurz, schließ wieder.',
+    icon: '👄',
+    category: 'face',
+  },
+  {
+    id: 'eyes',
+    title: 'Augen-Blinzeln',
+    subtitle: 'Schließe deine Augen fest und öffne sie wieder.',
+    icon: '👁',
+    category: 'face',
+  },
+  {
+    id: 'brows',
+    title: 'Augenbrauen',
+    subtitle: 'Hebe deine Brauen so hoch wie möglich.',
+    icon: '🤨',
+    category: 'face',
+  },
+  {
+    id: 'smile',
+    title: 'Lächeln',
+    subtitle: 'Zeige dein breitestes Lächeln.',
+    icon: '😄',
+    category: 'face',
+  },
+  {
+    id: 'hands',
+    title: 'Hände sichtbar',
+    subtitle: 'Halte beide Hände kurz vor die Kamera.',
+    icon: '🖐',
+    category: 'hands',
+  },
+  {
+    id: 'done',
+    title: 'Fertig',
+    subtitle: 'Alles eingerichtet. Du kannst jetzt streamen.',
+    icon: '🎉',
+    category: 'outro',
+  },
 ] as const;
 
 export type StepId =
@@ -38,13 +106,6 @@ export interface StepSkipState {
   reason: Map<StepId, string>;
 }
 
-/**
- * Bestimmt welche Steps fuer die aktive Tracking-Quelle ueberfluessig sind.
- * - external (iPhone allein): Webcam-spezifische Schritte und Hand-Tracking weg
- * - external + Face/Head: Face-Kalibrierungs-Schritte weg (iPhone liefert die)
- * - both: Hands bleibt (Webcam), Face skippbar wenn iPhone Face liefert
- * - webcam: nichts skippen
- */
 export function computeSkippedSteps(
   source: TrackingSource,
   vmcSourceFace: boolean,

@@ -65,6 +65,18 @@ const api = {
     localIps: (): Promise<string[]> => ipcRenderer.invoke(IPC.VMC_LOCAL_IPS),
   },
 
+  updater: {
+    decide: (
+      decision:
+        | { type: 'download' }
+        | { type: 'snooze' }
+        | { type: 'skip' }
+        | { type: 'install-now' }
+        | { type: 'install-later' },
+    ): Promise<void> => ipcRenderer.invoke(IPC.UPDATER_DECISION, decision),
+    check: (): Promise<void> => ipcRenderer.invoke(IPC.UPDATER_CHECK),
+  },
+
   profiles: {
     get: (avatarId: string): Promise<AvatarProfile> => ipcRenderer.invoke(IPC.PROFILE_GET, avatarId),
     set: (profile: AvatarProfile): Promise<AvatarProfile> =>

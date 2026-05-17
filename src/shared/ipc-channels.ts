@@ -56,6 +56,14 @@ export const IPC = {
   VMC_STATUS: 'vmc:status',
   VMC_FRAME: 'vmc:frame',
   VMC_LOCAL_IPS: 'vmc:local-ips',
+
+  // Updater
+  UPDATER_AVAILABLE: 'updater:available',
+  UPDATER_PROGRESS: 'updater:progress',
+  UPDATER_DOWNLOADED: 'updater:downloaded',
+  UPDATER_ERROR: 'updater:error',
+  UPDATER_DECISION: 'updater:decision',
+  UPDATER_CHECK: 'updater:check',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
