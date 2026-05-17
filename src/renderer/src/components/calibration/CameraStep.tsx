@@ -16,23 +16,24 @@ export const CameraStep = memo(function CameraStep({ onComplete }: CameraStepPro
   const updateSetting = useSettingsStore((s) => s.update);
   const trackingEnabled = useTrackingStore((s) => s.trackingEnabled);
   const setTrackingEnabled = useTrackingStore((s) => s.setTrackingEnabled);
+  const videoStream = useTrackingStore((s) => s.videoStream);
   const [devices, setDevices] = useState<DeviceOption[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
+  const [permissionGranted, setPermissionGranted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    let active = true;
-    navigator.mediaDevices
-      .getUserMedia({ video: true })
-      .then(async (s) => {
-        if (!active) {
-          s.getTracks().forEach((t) => t.stop());
-          return;
+    let cancelled = false;
+    const refreshDevices = async (): Promise<void> => {
+      try {
+        if (!permissionGranted && !trackingEnabled) {
+          const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          tempStream.getTracks().forEach((t) => t.stop());
+          if (cancelled) return;
+          setPermissionGranted(true);
         }
-        setPreviewStream(s);
         const list = await navigator.mediaDevices.enumerateDevices();
-        if (!active) return;
+        if (cancelled) return;
         setDevices(
           list
             .filter((d) => d.kind === 'videoinput')
@@ -41,34 +42,31 @@ export const CameraStep = memo(function CameraStep({ onComplete }: CameraStepPro
               label: d.label || `Kamera ${d.deviceId.slice(0, 8)}`,
             })),
         );
-      })
-      .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : 'Kamera-Zugriff verweigert');
-      });
-    return () => {
-      active = false;
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Kamera-Zugriff verweigert');
+        }
+      }
     };
-  }, []);
-
-  useEffect(() => {
+    void refreshDevices();
     return () => {
-      previewStream?.getTracks().forEach((t) => t.stop());
+      cancelled = true;
     };
-  }, [previewStream]);
+  }, [permissionGranted, trackingEnabled]);
 
   useEffect(() => {
-    if (videoRef.current && previewStream) videoRef.current.srcObject = previewStream;
-  }, [previewStream]);
+    if (videoRef.current) videoRef.current.srcObject = videoStream;
+  }, [videoStream]);
 
   useEffect(() => {
-    if (previewStream && devices.length > 0) onComplete?.();
-  }, [previewStream, devices.length, onComplete]);
+    if (videoStream && devices.length > 0) onComplete?.();
+  }, [videoStream, devices.length, onComplete]);
 
   const currentId = settings?.selectedCameraId ?? '';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <p style={{ margin: 0 }}>
+      <p style={{ margin: 0, fontSize: 13 }}>
         Wähle die Kamera, die für das Gesichts-Tracking genutzt werden soll. Die Vorschau zeigt
         live, was die App sieht.
       </p>
@@ -111,18 +109,36 @@ export const CameraStep = memo(function CameraStep({ onComplete }: CameraStepPro
           position: 'relative',
         }}
       >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            transform: settings?.mirrorMode ? 'scaleX(-1)' : 'none',
-          }}
-        />
+        {videoStream ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transform: settings?.mirrorMode ? 'scaleX(-1)' : 'none',
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#a0a0a8',
+              fontSize: 13,
+              textAlign: 'center',
+              padding: 16,
+            }}
+          >
+            Webcam ist nicht aktiv. Klick auf „Tracking starten" unten oder oben in der Statusleiste „Webcam: AUS".
+          </div>
+        )}
       </div>
       <button
         type="button"
