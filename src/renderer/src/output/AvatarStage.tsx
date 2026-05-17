@@ -33,6 +33,23 @@ const DEAD_ZONE = 0.008;
 const ORIGIN_VEC = new THREE.Vector3(0, 0, 0);
 const SCENE_TARGET = new THREE.Vector3();
 
+function logVrmCapabilities(vrm: VRM): void {
+  const manager = vrm.expressionManager;
+  if (!manager) {
+    console.warn('[VRM-Capability] Avatar hat KEINEN ExpressionManager — keine BlendShapes möglich');
+    return;
+  }
+  const names = manager.expressions.map((e) => e.expressionName).sort();
+  const lower = new Set(names.map((n) => n.toLowerCase()));
+  const arkitMarkers = ['eyeblinkleft', 'jawopen', 'mouthsmileleft', 'browinnerup'];
+  const hasArkit = arkitMarkers.filter((n) => lower.has(n)).length;
+  const legacyMarkers = ['blink', 'happy', 'aa', 'a'];
+  const hasLegacy = legacyMarkers.filter((n) => lower.has(n)).length;
+  console.warn(
+    `[VRM-Capability] ${names.length} Expressions: ARKit-Marker: ${hasArkit}/4 (case-insensitive), Legacy-Marker: ${hasLegacy}/4.`,
+  );
+}
+
 function applyAvatarMicroFollow(scene: THREE.Group, pose: PoseFrame): void {
   const metrics = pose.faceMetrics;
   const quality = pose.quality;
@@ -291,6 +308,7 @@ export const AvatarStage = memo(function AvatarStage({
         applyColliderMultiplier(loaded.vrm, multiplier);
         loaded.vrm.update(0);
         loadedRef.current = loaded;
+        logVrmCapabilities(loaded.vrm);
         onLoad?.(loaded.vrm);
       })
       .catch((err: unknown) => {

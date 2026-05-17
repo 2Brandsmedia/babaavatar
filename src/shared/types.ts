@@ -105,6 +105,7 @@ export interface AppSettings {
   vmcSourceFace: boolean;
   vmcSourceHead: boolean;
   springBoneColliderMultiplier: number;
+  trackingSource: TrackingSource;
 }
 
 export interface Vec3 {
@@ -251,6 +252,8 @@ export interface PoseFrame {
 }
 
 export type TrackerProtocol = 'vmc' | 'ifacialmocap';
+
+export type TrackingSource = 'webcam' | 'external' | 'both';
 
 export interface VmcSnapshot {
   blendShapes: Record<string, number>;

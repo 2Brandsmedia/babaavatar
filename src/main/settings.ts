@@ -54,6 +54,7 @@ const defaults: AppSettings = {
   vmcSourceFace: true,
   vmcSourceHead: true,
   springBoneColliderMultiplier: 1,
+  trackingSource: 'webcam',
 };
 
 interface StoreSchema extends AppSettings {
@@ -112,6 +113,7 @@ export function getAll(): AppSettings {
     vmcSourceHead: raw.vmcSourceHead ?? defaults.vmcSourceHead,
     springBoneColliderMultiplier:
       raw.springBoneColliderMultiplier ?? defaults.springBoneColliderMultiplier,
+    trackingSource: raw.trackingSource ?? defaults.trackingSource,
   };
 }
 

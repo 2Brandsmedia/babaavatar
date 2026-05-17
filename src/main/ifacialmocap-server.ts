@@ -21,6 +21,10 @@ let controlWindow: BrowserWindow | null = null;
 let lastMessageAt = 0;
 let lastBroadcastAt = 0;
 let lastIphoneIp: string | null = null;
+let packetsReceived = 0;
+let firstPacketLogged = false;
+let parseFailures = 0;
+let lastStatsAt = 0;
 
 export function setIfmWindows(windows: {
   controlWindow: BrowserWindow;
@@ -62,7 +66,17 @@ export async function startIfmServer(port: number): Promise<void> {
 
   socket.on('message', (msg, rinfo) => {
     lastIphoneIp = rinfo.address;
-    handleMessage(msg.toString('utf-8'));
+    packetsReceived += 1;
+    const text = msg.toString('utf-8');
+    if (!firstPacketLogged) {
+      firstPacketLogged = true;
+      log.info('Erstes iPhone-Paket empfangen', {
+        from: rinfo.address,
+        bytes: msg.length,
+        sample: text.length > 1000 ? text.slice(0, 1000) + '...[truncated]' : text,
+      });
+    }
+    handleMessage(text);
   });
 
   socket.bind(port);
@@ -72,13 +86,22 @@ export async function startIfmServer(port: number): Promise<void> {
     const target = lastIphoneIp ?? '255.255.255.255';
     socket.send(payload, port, target, (err) => {
       if (err && !lastIphoneIp) {
-        // Broadcast scheitert oft je nach Netzwerk-Konfig — nicht spammen
         return;
       }
       if (err) {
         log.warn('Handshake-Send fehlgeschlagen', { err: err.message, target });
       }
     });
+    const now = Date.now();
+    if (now - lastStatsAt > 5000) {
+      lastStatsAt = now;
+      log.info('iFacialMocap-Stats', {
+        packetsReceived,
+        parseFailures,
+        lastIphoneIp,
+        firstPacketLogged,
+      });
+    }
   }, HANDSHAKE_INTERVAL_MS);
 
   current = {
@@ -99,12 +122,24 @@ export async function stopIfmServer(): Promise<void> {
   current.stop();
   current = null;
   lastIphoneIp = null;
+  packetsReceived = 0;
+  parseFailures = 0;
+  firstPacketLogged = false;
+  lastStatsAt = 0;
 }
 
 function handleMessage(text: string): void {
   lastMessageAt = Date.now();
   const snapshot = parseIfmPacket(text);
-  if (!snapshot) return;
+  if (!snapshot) {
+    parseFailures += 1;
+    if (parseFailures <= 3) {
+      log.warn('iFacialMocap-Paket konnte nicht geparsed werden', {
+        sample: text.slice(0, 200),
+      });
+    }
+    return;
+  }
   const now = Date.now();
   if (now - lastBroadcastAt < BROADCAST_INTERVAL_MS) return;
   lastBroadcastAt = now;
@@ -126,7 +161,14 @@ export function parseIfmPacket(text: string): VmcSnapshot | null {
       if (section.startsWith('=head#') || section.startsWith('head#')) {
         const payload = section.replace(/^=?head#/, '');
         const parsed = parseTriplet(payload);
-        if (parsed) headEuler = parsed;
+        if (parsed) {
+          const deg2rad = Math.PI / 180;
+          headEuler = {
+            x: -parsed.x * deg2rad,
+            y: -parsed.y * deg2rad,
+            z: parsed.z * deg2rad,
+          };
+        }
         continue;
       }
 
@@ -150,7 +192,9 @@ export function parseIfmPacket(text: string): VmcSnapshot | null {
         if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
           const value = Number.parseFloat(valueStr);
           if (Number.isFinite(value)) {
-            blendShapes[name] = value;
+            const normalizedName = normalizeIfmBlendShapeName(name);
+            const normalizedValue = value / 100;
+            blendShapes[normalizedName] = normalizedValue;
             continue;
           }
         }
@@ -175,6 +219,13 @@ export function parseIfmPacket(text: string): VmcSnapshot | null {
     headEuler,
     receivedAt: Date.now(),
   };
+}
+
+export function normalizeIfmBlendShapeName(name: string): string {
+  if (name === 'trackingStatus') return name;
+  if (name.endsWith('_L')) return name.slice(0, -2) + 'Left';
+  if (name.endsWith('_R')) return name.slice(0, -2) + 'Right';
+  return name;
 }
 
 function parseTriplet(input: string): { x: number; y: number; z: number } | null {

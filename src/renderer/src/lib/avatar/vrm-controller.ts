@@ -108,16 +108,97 @@ const ARKIT_TO_VRM_BLENDSHAPE: Readonly<Record<string, string>> = {
   tongueOut: 'tongueOut',
 };
 
+interface VrmCapabilities {
+  isArkit: boolean;
+  resolve: (name: string) => string | null;
+}
+
+const capabilityCache = new WeakMap<VRM, VrmCapabilities>();
+
+export function resetVrmCapabilityCache(vrm: VRM): void {
+  capabilityCache.delete(vrm);
+}
+
+function getCapabilities(vrm: VRM): VrmCapabilities {
+  const cached = capabilityCache.get(vrm);
+  if (cached) return cached;
+  const manager = vrm.expressionManager;
+  const lowerToActual = new Map<string, string>();
+  for (const expr of manager?.expressions ?? []) {
+    lowerToActual.set(expr.expressionName.toLowerCase(), expr.expressionName);
+  }
+  const resolve = (n: string): string | null => lowerToActual.get(n.toLowerCase()) ?? null;
+  const isArkit = resolve('eyeBlinkLeft') !== null && resolve('jawOpen') !== null;
+  const caps: VrmCapabilities = { isArkit, resolve };
+  capabilityCache.set(vrm, caps);
+  return caps;
+}
+
+function maxN(...values: Array<number | undefined>): number {
+  let m = 0;
+  for (const v of values) if (typeof v === 'number' && v > m) m = v;
+  return m;
+}
+
 function applyAllBlendShapes(vrm: VRM, frame: PoseFrame): void {
   const blendShapes = frame.blendShapes;
   const manager = vrm.expressionManager;
   if (!blendShapes || !manager) return;
-  for (const [mpName, vrmName] of Object.entries(ARKIT_TO_VRM_BLENDSHAPE)) {
-    const value = blendShapes[mpName];
-    if (typeof value === 'number') {
-      manager.setValue(vrmName as VRMExpressionPresetName, clamp01(value));
+  const caps = getCapabilities(vrm);
+
+  if (caps.isArkit) {
+    for (const mpName of Object.keys(ARKIT_TO_VRM_BLENDSHAPE)) {
+      const value = blendShapes[mpName];
+      if (typeof value !== 'number') continue;
+      const actual = caps.resolve(mpName);
+      if (actual) manager.setValue(actual as VRMExpressionPresetName, clamp01(value));
     }
+    return;
   }
+
+  const setIf = (name: string, value: number): void => {
+    const actual = caps.resolve(name);
+    if (!actual) return;
+    manager.setValue(actual as VRMExpressionPresetName, clamp01(value));
+  };
+
+  const blinkL = blendShapes['eyeBlinkLeft'] ?? 0;
+  const blinkR = blendShapes['eyeBlinkRight'] ?? 0;
+  setIf('blink_l', blinkL);
+  setIf('blinkLeft', blinkL);
+  setIf('blink_r', blinkR);
+  setIf('blinkRight', blinkR);
+  setIf('blink', Math.max(blinkL, blinkR));
+
+  const jaw = blendShapes['jawOpen'] ?? 0;
+  setIf('aa', jaw);
+  setIf('a', jaw);
+
+  const funnel = blendShapes['mouthFunnel'] ?? 0;
+  setIf('oh', funnel);
+  setIf('o', funnel);
+
+  const pucker = blendShapes['mouthPucker'] ?? 0;
+  setIf('ou', pucker);
+  setIf('u', pucker);
+
+  const smile = maxN(blendShapes['mouthSmileLeft'], blendShapes['mouthSmileRight']);
+  setIf('happy', smile);
+  setIf('joy', smile);
+
+  const frown = maxN(blendShapes['mouthFrownLeft'], blendShapes['mouthFrownRight']);
+  setIf('sad', frown);
+  setIf('sorrow', frown);
+
+  const browUp = maxN(
+    blendShapes['browInnerUp'],
+    blendShapes['browOuterUpLeft'],
+    blendShapes['browOuterUpRight'],
+  );
+  setIf('surprised', browUp);
+
+  const browDown = maxN(blendShapes['browDownLeft'], blendShapes['browDownRight']);
+  setIf('angry', browDown);
 }
 
 function applyGaze(vrm: VRM, frame: PoseFrame, mirror: boolean): void {

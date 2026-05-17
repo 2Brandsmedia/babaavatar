@@ -1,5 +1,5 @@
-import { memo, useEffect, useRef } from 'react';
-import type { AvatarRecord, VmcSnapshot } from '@shared/types';
+import { memo, useEffect, useRef, useState } from 'react';
+import type { AvatarRecord, TrackingSource, VmcSnapshot } from '@shared/types';
 import { useTrackingStore } from '@renderer/store/tracking';
 import { useSettingsStore } from '@renderer/store/settings';
 import { api } from '@renderer/lib/ipc/api';
@@ -37,6 +37,7 @@ export const StatusBar = memo(function StatusBar({ activeAvatar }: StatusBarProp
         prefix="Avatar"
         active={!!activeAvatar}
       />
+      <SourceSelector />
       <Indicator
         label={
           trackingReady
@@ -73,68 +74,102 @@ export const StatusBar = memo(function StatusBar({ activeAvatar }: StatusBarProp
   );
 });
 
-const TrackerIndicator = memo(function TrackerIndicator(): JSX.Element | null {
+const SourceSelector = memo(function SourceSelector(): JSX.Element {
   const settings = useSettingsStore((s) => s.settings);
-  const dotRef = useRef<HTMLSpanElement>(null);
-  const labelRef = useRef<HTMLSpanElement>(null);
+  const update = useSettingsStore((s) => s.update);
+  const setTrackingEnabled = useTrackingStore((s) => s.setTrackingEnabled);
+  const source = settings?.trackingSource ?? 'webcam';
+
+  const handleChange = (next: TrackingSource): void => {
+    if (next === source) return;
+    void update('trackingSource', next);
+    const wantsWebcam = next === 'webcam' || next === 'both';
+    const wantsExternal = next === 'external' || next === 'both';
+    setTrackingEnabled(wantsWebcam);
+    void update('vmcEnabled', wantsExternal);
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ color: '#a0a0a8' }}>Quelle:</span>
+      <div style={{ display: 'flex', border: '1px solid #2a2a32', borderRadius: 6, overflow: 'hidden' }}>
+        <SourceButton label="Webcam" active={source === 'webcam'} onClick={() => handleChange('webcam')} />
+        <SourceButton label="iPhone" active={source === 'external'} onClick={() => handleChange('external')} />
+        <SourceButton label="Beides" active={source === 'both'} onClick={() => handleChange('both')} />
+      </div>
+    </div>
+  );
+});
+
+interface SourceButtonProps {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}
+
+const SourceButton = memo(function SourceButton({ label, active, onClick }: SourceButtonProps): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: active ? '#22223a' : '#0f0f12',
+        color: active ? '#7aa7ff' : '#a0a0a8',
+        border: 'none',
+        padding: '4px 10px',
+        fontSize: 11,
+        fontWeight: active ? 600 : 400,
+        cursor: 'pointer',
+      }}
+    >
+      {label}
+    </button>
+  );
+});
+
+const TrackerIndicator = memo(function TrackerIndicator(): JSX.Element {
+  const settings = useSettingsStore((s) => s.settings);
+  const [snapshot, setSnapshot] = useState<VmcSnapshot | null>(null);
   const lastFrameRef = useRef<VmcSnapshot | null>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeVmcFrames((snapshot) => {
-      lastFrameRef.current = snapshot;
+    const unsubscribe = subscribeVmcFrames((s) => {
+      lastFrameRef.current = s;
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setSnapshot(lastFrameRef.current);
+    }, 500);
+    return () => window.clearInterval(interval);
   }, []);
 
   const enabled = settings?.vmcEnabled ?? false;
   const protocol = settings?.vmcProtocol ?? 'ifacialmocap';
   const protocolLabel = protocol === 'ifacialmocap' ? 'iFacialMocap' : 'VMC';
+  const fresh = snapshot !== null && Date.now() - snapshot.receivedAt < 2000;
+  const active = enabled && fresh;
 
-  useEffect(() => {
-    if (!enabled) return;
-    let raf = 0;
-    const tick = (): void => {
-      const last = lastFrameRef.current;
-      const active = last !== null && Date.now() - last.receivedAt < 2000;
-      if (dotRef.current) {
-        dotRef.current.style.background = active ? '#7af2c5' : '#facc15';
-      }
-      if (labelRef.current) {
-        if (active) {
-          const keys = Object.keys(last?.blendShapes ?? {}).length;
-          labelRef.current.textContent = `${protocolLabel} · ${keys} BlendShapes`;
-          labelRef.current.style.color = '#e8e8ec';
-        } else {
-          labelRef.current.textContent = `${protocolLabel} · wartet`;
-          labelRef.current.style.color = '#a0a0a8';
-        }
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [enabled, protocolLabel]);
+  let dotColor = '#52525a';
+  if (enabled) dotColor = active ? '#7af2c5' : '#facc15';
 
-  if (!enabled) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 999, background: '#52525a' }} />
-        <span style={{ color: '#a0a0a8' }}>Tracker:</span>
-        <span style={{ color: '#6a6a72' }}>Aus</span>
-      </div>
-    );
+  let label = 'Aus';
+  if (enabled) {
+    if (active) {
+      const keys = Object.keys(snapshot?.blendShapes ?? {}).length;
+      label = `${protocolLabel} · ${keys} BlendShapes`;
+    } else {
+      label = `${protocolLabel} · wartet`;
+    }
   }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span
-        ref={dotRef}
-        style={{ width: 8, height: 8, borderRadius: 999, background: '#facc15' }}
-      />
+      <span style={{ width: 8, height: 8, borderRadius: 999, background: dotColor }} />
       <span style={{ color: '#a0a0a8' }}>Tracker:</span>
-      <span ref={labelRef} style={{ color: '#a0a0a8' }}>
-        {protocolLabel} · wartet
-      </span>
+      <span style={{ color: enabled && active ? '#e8e8ec' : '#6a6a72' }}>{label}</span>
     </div>
   );
 });
