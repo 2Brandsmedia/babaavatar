@@ -10,9 +10,11 @@ files:
   - out/**/*
   - resources/**/*
   - package.json
-  - '!**/node_modules/**/*'
 
 asar: true
+
+asarUnpack:
+  - node_modules/electron-updater/**/*
 
 mac:
   category: public.app-category.video
@@ -34,14 +36,25 @@ win:
       arch:
         - x64
   icon: resources/icon.png
+  artifactName: 'BabaAvatar-Setup-${version}.${ext}'
 
 nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  allowElevation: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
+  menuCategory: false
   shortcutName: BabaAvatar
+  uninstallDisplayName: 'BabaAvatar - VTuber Tracking'
+  deleteAppDataOnUninstall: true
+  runAfterFinish: true
+  differentialPackage: true
+  installerLanguages:
+    - de_DE
+    - en_US
+  displayLanguageSelector: false
 
 publish:
   provider: github
