@@ -12,15 +12,18 @@ const SLERP_SPINE = 0.4;
 const SLERP_ARM = 0.65;
 const SLERP_REST = 0.08;
 const HEAD_DAMPENER = 0.7;
-const SPINE_DAMPENER = 0.45;
+const SPINE_DAMPENER = 0.2;
 const ARM_DAMPENER = 1.0;
 const BLINK_THRESHOLD_OPEN = 0.5;
+const SPINE_DEAD_ZONE = 0.05;
 
 export interface VrmControllerOptions {
   mirror: boolean;
   lipsyncFromCamera: boolean;
   lipsyncFromMic: boolean;
   armIkEnabled: boolean;
+  handTrackingEnabled: boolean;
+  audioVolume: number;
 }
 
 const IK_BLEND_FACTOR = 0.5;
@@ -33,16 +36,20 @@ export function applyPoseToVrm(
   applyFace(vrm, frame, options);
   applyAllBlendShapes(vrm, frame);
   applyGaze(vrm, frame, options.mirror);
-  applyPose(vrm, frame);
-  if (options.armIkEnabled && frame.pose) {
-    if (frame.pose.leftArmWorld?.visible) {
-      applyArmIK({ vrm, side: 'Left', armWorld: frame.pose.leftArmWorld, blendFactor: IK_BLEND_FACTOR });
+  if (options.handTrackingEnabled) {
+    applyPose(vrm, frame, options.mirror);
+    if (options.armIkEnabled && frame.pose) {
+      if (frame.pose.leftArmWorld?.visible) {
+        applyArmIK({ vrm, side: 'Left', armWorld: frame.pose.leftArmWorld, blendFactor: IK_BLEND_FACTOR });
+      }
+      if (frame.pose.rightArmWorld?.visible) {
+        applyArmIK({ vrm, side: 'Right', armWorld: frame.pose.rightArmWorld, blendFactor: IK_BLEND_FACTOR });
+      }
     }
-    if (frame.pose.rightArmWorld?.visible) {
-      applyArmIK({ vrm, side: 'Right', armWorld: frame.pose.rightArmWorld, blendFactor: IK_BLEND_FACTOR });
-    }
+    applyHands(vrm, frame);
+  } else {
+    applyArmRestPose(vrm);
   }
-  applyHands(vrm, frame);
   applyExpression(vrm, frame);
 }
 
@@ -195,29 +202,41 @@ function applyFace(vrm: VRM, frame: PoseFrame, options: VrmControllerOptions): v
   const micU = lipsyncFromMic ? frame.audioPhonemes?.U ?? 0 : 0;
   const micE = lipsyncFromMic ? frame.audioPhonemes?.E ?? 0 : 0;
   const micO = lipsyncFromMic ? frame.audioPhonemes?.O ?? 0 : 0;
-  manager.setValue('aa' as VRMExpressionPresetName, Math.max(camA, micA));
+  const voiceBoost = lipsyncFromMic ? clamp01(options.audioVolume * 1.4) : 0;
+  manager.setValue('aa' as VRMExpressionPresetName, Math.max(camA, micA, voiceBoost * 0.85));
   manager.setValue('ih' as VRMExpressionPresetName, Math.max(camI, micI));
   manager.setValue('ou' as VRMExpressionPresetName, Math.max(camU, micU));
   manager.setValue('ee' as VRMExpressionPresetName, Math.max(camE, micE));
   manager.setValue('oh' as VRMExpressionPresetName, Math.max(camO, micO));
+  if (voiceBoost > 0) {
+    const jawCurrent = manager.getValue('jawOpen' as VRMExpressionPresetName) ?? 0;
+    manager.setValue(
+      'jawOpen' as VRMExpressionPresetName,
+      Math.max(jawCurrent, voiceBoost * 0.7),
+    );
+  }
 
   manager.setValue('surprised' as VRMExpressionPresetName, face.brow);
 }
 
-function applyPose(vrm: VRM, frame: PoseFrame): void {
+function applyPose(vrm: VRM, frame: PoseFrame, mirror: boolean): void {
   const pose = frame.pose;
   if (!pose) {
     applyArmRestPose(vrm);
     return;
   }
 
+  const sx = Math.abs(pose.spine.x) < SPINE_DEAD_ZONE ? 0 : pose.spine.x;
+  const sy = Math.abs(pose.spine.y) < SPINE_DEAD_ZONE ? 0 : pose.spine.y;
+  const sz = Math.abs(pose.spine.z) < SPINE_DEAD_ZONE ? 0 : pose.spine.z;
+
   applyEuler(
     vrm,
     VRMHumanBoneName.Spine,
     {
-      x: pose.spine.x * SPINE_DAMPENER,
-      y: pose.spine.y * SPINE_DAMPENER,
-      z: pose.spine.z * SPINE_DAMPENER,
+      x: sx * SPINE_DAMPENER,
+      y: sy * SPINE_DAMPENER * (mirror ? -1 : 1),
+      z: sz * SPINE_DAMPENER * (mirror ? -1 : 1),
     },
     SLERP_SPINE,
   );

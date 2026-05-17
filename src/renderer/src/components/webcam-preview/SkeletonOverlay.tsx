@@ -123,8 +123,8 @@ function drawFace(
   height: number,
   mirror: boolean,
 ): void {
-  ctx.lineWidth = 0.45;
-  ctx.strokeStyle = 'rgba(122, 167, 255, 0.32)';
+  ctx.lineWidth = 0.8;
+  ctx.strokeStyle = 'rgba(122, 242, 197, 0.55)';
   ctx.beginPath();
   for (const [a, b] of FULL_TESSELATION_EDGES) {
     const la = landmarks[a];

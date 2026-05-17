@@ -89,6 +89,8 @@ export interface AppSettings {
   trackingEngine: 'mediapipe' | 'nvidia';
   showFaceMesh: boolean;
   armIkEnabled: boolean;
+  handTrackingEnabled: boolean;
+  showPerformanceStats: boolean;
 }
 
 export interface Vec3 {

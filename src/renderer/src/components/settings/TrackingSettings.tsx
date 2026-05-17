@@ -76,6 +76,16 @@ export const TrackingSettings = memo(function TrackingSettings({
         value={settings.armIkEnabled}
         onChange={(v) => void onUpdate('armIkEnabled', v)}
       />
+      <ToggleRow
+        label="Hand- und Arm-Tracking aktiv"
+        value={settings.handTrackingEnabled}
+        onChange={(v) => void onUpdate('handTrackingEnabled', v)}
+      />
+      <ToggleRow
+        label="Performance-Stats im Output anzeigen (FPS, Triangles, RAM)"
+        value={settings.showPerformanceStats}
+        onChange={(v) => void onUpdate('showPerformanceStats', v)}
+      />
       <EngineSelector settings={settings} onUpdate={onUpdate} />
     </div>
   );

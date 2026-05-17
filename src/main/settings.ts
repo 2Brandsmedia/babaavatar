@@ -34,6 +34,8 @@ const defaults: AppSettings = {
   trackingEngine: 'mediapipe',
   showFaceMesh: true,
   armIkEnabled: true,
+  handTrackingEnabled: true,
+  showPerformanceStats: false,
 };
 
 interface StoreSchema extends AppSettings {
@@ -75,6 +77,8 @@ export function getAll(): AppSettings {
     trackingEngine: raw.trackingEngine ?? defaults.trackingEngine,
     showFaceMesh: raw.showFaceMesh ?? defaults.showFaceMesh,
     armIkEnabled: raw.armIkEnabled ?? defaults.armIkEnabled,
+    handTrackingEnabled: raw.handTrackingEnabled ?? defaults.handTrackingEnabled,
+    showPerformanceStats: raw.showPerformanceStats ?? defaults.showPerformanceStats,
   };
 }
 

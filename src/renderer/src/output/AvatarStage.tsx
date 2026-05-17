@@ -157,11 +157,22 @@ export const AvatarStage = memo(function AvatarStage({
         const now = performance.now();
         const poseFresh = pose && now - pose.timestamp < 2000;
         if (poseFresh && pose) {
+          const audioVolume = pose.audioPhonemes
+            ? Math.max(
+                pose.audioPhonemes.A,
+                pose.audioPhonemes.I,
+                pose.audioPhonemes.U,
+                pose.audioPhonemes.E,
+                pose.audioPhonemes.O,
+              )
+            : 0;
           applyPoseToVrm(loaded.vrm, pose, {
             mirror: mirrorRef.current,
             lipsyncFromCamera: settings?.lipsyncFromCamera ?? true,
             lipsyncFromMic: settings?.lipsyncFromMic ?? true,
             armIkEnabled: settings?.armIkEnabled ?? true,
+            handTrackingEnabled: settings?.handTrackingEnabled ?? true,
+            audioVolume,
           });
           applyAvatarMicroFollow(loaded.scene, pose);
         } else {
@@ -182,6 +193,7 @@ export const AvatarStage = memo(function AvatarStage({
       }
 
       sceneRef.current.renderer.render(sceneRef.current.scene, sceneRef.current.camera);
+      frameCounterRef.current += 1;
     };
     tick();
 
@@ -253,9 +265,38 @@ export const AvatarStage = memo(function AvatarStage({
   }, [background]);
 
   const [hintVisible, setHintVisible] = useState(true);
+  const [stats, setStats] = useState<{ fps: number; triangles: number; calls: number; heapMb: number }>({
+    fps: 0,
+    triangles: 0,
+    calls: 0,
+    heapMb: 0,
+  });
   useEffect(() => {
     const t = window.setTimeout(() => setHintVisible(false), 4000);
     return () => window.clearTimeout(t);
+  }, []);
+
+  const frameCounterRef = useRef(0);
+  useEffect(() => {
+    let lastSample = performance.now();
+    const handle = window.setInterval(() => {
+      const now = performance.now();
+      const elapsedSec = (now - lastSample) / 1000;
+      const fps = elapsedSec > 0 ? frameCounterRef.current / elapsedSec : 0;
+      frameCounterRef.current = 0;
+      lastSample = now;
+      const info = sceneRef.current?.renderer.info.render;
+      type PerfMemory = { usedJSHeapSize: number };
+      const memory = (performance as Performance & { memory?: PerfMemory }).memory;
+      const heapMb = memory ? memory.usedJSHeapSize / (1024 * 1024) : 0;
+      setStats({
+        fps: Math.round(fps),
+        triangles: info?.triangles ?? 0,
+        calls: info?.calls ?? 0,
+        heapMb: Math.round(heapMb),
+      });
+    }, 1000);
+    return () => window.clearInterval(handle);
   }, []);
 
   const dragRef = useRef<{
@@ -360,6 +401,29 @@ export const AvatarStage = memo(function AvatarStage({
           }}
         >
           Mausrad = Zoom · Ziehen = Position · Doppelklick = Reset
+        </div>
+      )}
+      {settingsRef.current?.showPerformanceStats && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            background: 'rgba(0,0,0,0.6)',
+            color: '#7af2c5',
+            padding: '6px 10px',
+            borderRadius: 8,
+            fontSize: 11,
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            lineHeight: 1.5,
+            pointerEvents: 'none',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <div>FPS: {stats.fps}</div>
+          <div>Triangles: {stats.triangles.toLocaleString()}</div>
+          <div>Draw Calls: {stats.calls}</div>
+          <div>JS Heap: {stats.heapMb} MB</div>
         </div>
       )}
     </>
