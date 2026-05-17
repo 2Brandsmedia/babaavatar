@@ -1,6 +1,7 @@
 import { memo, useEffect, useState } from 'react';
 import type { AppSettings, TrackerProtocol } from '@shared/types';
 import { api } from '@renderer/lib/ipc/api';
+import { ToggleRow } from '@renderer/components/ui/FormRows';
 import { TrackerConnectionStatus } from './TrackerConnectionStatus';
 import { TrackerSetupGuide } from './TrackerSetupGuide';
 import { TrackerDebugPanel } from './TrackerDebugPanel';
@@ -121,20 +122,5 @@ export const ExternalTrackerSettings = memo(function ExternalTrackerSettings({
 
       <TrackerDebugPanel enabled={settings.vmcEnabled} />
     </div>
-  );
-});
-
-interface ToggleRowProps {
-  label: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-}
-
-const ToggleRow = memo(function ToggleRow({ label, value, onChange }: ToggleRowProps): JSX.Element {
-  return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
-      <span style={{ fontSize: 13 }}>{label}</span>
-    </label>
   );
 });

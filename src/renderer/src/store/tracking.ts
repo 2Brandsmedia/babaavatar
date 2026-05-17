@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { GestureName, GestureState, PoseFrame } from '@shared/types';
+import { RELOAD_DEBOUNCE_MS } from '@shared/constants';
 import type { TrackingMetrics } from '@renderer/lib/tracking/use-tracking';
 
 export interface RawLandmark {
@@ -82,7 +83,7 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
     set({ isReloading: true });
     window.setTimeout(() => {
       set((state) => ({ reloadCounter: state.reloadCounter + 1, isReloading: false }));
-    }, 250);
+    }, RELOAD_DEBOUNCE_MS);
   },
   setCameraId: (id) => set({ cameraId: id }),
   setMicrophoneId: (id) => set({ microphoneId: id }),

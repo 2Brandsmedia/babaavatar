@@ -8,6 +8,14 @@ import { HandSmoother } from './hand-smoother';
 import { GestureTracker } from './gesture-tracker';
 import { useTrackingStore, type RawLandmark } from '@renderer/store/tracking';
 import { useSettingsStore } from '@renderer/store/settings';
+import { createLogger } from '@renderer/lib/logger';
+import {
+  FRAME_TARGET_INTERVAL_MS,
+  POSE_SMOOTHER_BETA,
+  POSE_SMOOTHER_MIN_CUTOFF,
+} from '@shared/constants';
+
+const log = createLogger('use-tracking');
 
 export interface TrackingMetrics {
   fps: number;
@@ -28,7 +36,7 @@ export interface UseTrackingResult {
   error: string | null;
 }
 
-const TARGET_FRAME_INTERVAL_MS = 1000 / 60;
+const TARGET_FRAME_INTERVAL_MS = FRAME_TARGET_INTERVAL_MS;
 
 export function useTracking(options: UseTrackingOptions): UseTrackingResult {
   const { video, enabled } = options;
@@ -61,7 +69,7 @@ export function useTracking(options: UseTrackingOptions): UseTrackingResult {
     let dropped = 0;
     let cancelled = false;
 
-    const smoother = new PoseSmoother(4.0, 0.05);
+    const smoother = new PoseSmoother(POSE_SMOOTHER_MIN_CUTOFF, POSE_SMOOTHER_BETA);
     const autoCalibration = new AutoCalibration();
     const handSmoother = new HandSmoother();
     const gestureTracker = new GestureTracker();
@@ -128,7 +136,7 @@ export function useTracking(options: UseTrackingOptions): UseTrackingResult {
             setPose(frame);
           } catch (err) {
             dropped += 1;
-            console.error('Tracking-Fehler im Frame', err);
+            log.error('Tracking-Fehler im Frame', err);
           }
 
           frameCount += 1;

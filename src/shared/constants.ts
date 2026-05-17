@@ -89,3 +89,11 @@ export const VMC_DEFAULT_PORT = 39539;
 export const IFACIALMOCAP_DEFAULT_PORT = 49983;
 export const IFACIALMOCAP_HANDSHAKE_MAGIC =
   'iFacialMocap_sahuasouryya9218sauhuiayeta91555dy3719';
+
+export const FRAME_TARGET_HZ = 60;
+export const FRAME_TARGET_INTERVAL_MS = 1000 / FRAME_TARGET_HZ;
+
+export const POSE_SMOOTHER_MIN_CUTOFF = 4.0;
+export const POSE_SMOOTHER_BETA = 0.05;
+
+export const RELOAD_DEBOUNCE_MS = 250;

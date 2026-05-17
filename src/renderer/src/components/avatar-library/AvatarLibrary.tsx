@@ -4,6 +4,9 @@ import { useAvatarsStore } from '@renderer/store/avatars';
 import { AvatarCard } from './AvatarCard';
 import { DropZone } from './DropZone';
 import { ImportButton } from './ImportButton';
+import { createLogger } from '@renderer/lib/logger';
+
+const log = createLogger('avatar-library');
 
 interface AvatarLibraryProps {
   activeAvatarId: string | null;
@@ -30,7 +33,7 @@ export const AvatarLibrary = memo(function AvatarLibrary({
           const record = await importFile(file);
           onSelect(record.id);
         } catch (err) {
-          console.error('Avatar-Import fehlgeschlagen', err);
+          log.error('Avatar-Import fehlgeschlagen', err);
         }
       }
     },

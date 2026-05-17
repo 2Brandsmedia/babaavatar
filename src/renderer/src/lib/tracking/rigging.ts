@@ -19,6 +19,9 @@ import type {
 } from '@shared/types';
 import { AutoCalibration } from './auto-calibration';
 import { computeIrisDistanceCm } from './iris-distance';
+import { createLogger } from '@renderer/lib/logger';
+
+const log = createLogger('rigging');
 
 const SHOULDER_ELBOW_MIN = 0.55;
 const WRIST_MIN = 0.45;
@@ -127,7 +130,7 @@ function solveHands(handResult: HandLandmarkerResult, mirror: boolean): HandsRig
       if (avatarSide === 'Left') left = rig;
       else right = rig;
     } catch (err) {
-      console.warn('Hand-Solver fehlgeschlagen', err);
+      log.warn('Hand-Solver fehlgeschlagen', err);
     }
   }
 
@@ -253,7 +256,7 @@ function solveFace(result: FaceLandmarkerResult, video: HTMLVideoElement): FaceR
       },
     };
   } catch (err) {
-    console.warn('Face-Solver fehlgeschlagen', err);
+    log.warn('Face-Solver fehlgeschlagen', err);
     return null;
   }
 }
@@ -339,7 +342,7 @@ function solvePose(result: PoseLandmarkerResult, video: HTMLVideoElement, mirror
       rightArmWorld,
     };
   } catch (err) {
-    console.warn('Pose-Solver fehlgeschlagen', err);
+    log.warn('Pose-Solver fehlgeschlagen', err);
     return null;
   }
 }

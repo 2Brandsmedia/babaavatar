@@ -4,7 +4,9 @@ import type { CuratedAvatar } from '@shared/types';
 import { useAvatarsStore } from '@renderer/store/avatars';
 import { api } from '@renderer/lib/ipc/api';
 import { renderVrmThumbnail } from '@renderer/lib/avatar/thumbnail';
+import { createLogger } from '@renderer/lib/logger';
 
+const log = createLogger('curated-list');
 const curated = curatedData.avatars as CuratedAvatar[];
 
 export const CuratedList = memo(function CuratedList(): JSX.Element {
@@ -24,7 +26,7 @@ export const CuratedList = memo(function CuratedList(): JSX.Element {
       try {
         thumbnailDataUrl = await renderVrmThumbnail(buffer.slice(0));
       } catch (err) {
-        console.warn('Thumbnail-Rendering fehlgeschlagen', err);
+        log.warn('Thumbnail-Rendering fehlgeschlagen', err);
       }
       await api.avatars.importFile({
         buffer,

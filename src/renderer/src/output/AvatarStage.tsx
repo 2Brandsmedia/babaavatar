@@ -20,7 +20,10 @@ import {
   triggerExpression,
 } from '@renderer/lib/expression/expression-bus';
 import { applyColliderMultiplier, resetCache } from '@renderer/lib/avatar/collider-tuning';
+import { createLogger } from '@renderer/lib/logger';
 import type { ExpressionHotkey, GestureName } from '@shared/types';
+
+const log = createLogger('avatar-stage');
 
 const BASE_CAM_Y = 1.3;
 const BASE_CAM_Z = 2.6;
@@ -36,7 +39,7 @@ const SCENE_TARGET = new THREE.Vector3();
 function logVrmCapabilities(vrm: VRM): void {
   const manager = vrm.expressionManager;
   if (!manager) {
-    console.warn('[VRM-Capability] Avatar hat KEINEN ExpressionManager — keine BlendShapes möglich');
+    log.warn('Avatar hat KEINEN ExpressionManager - keine BlendShapes moeglich');
     return;
   }
   const names = manager.expressions.map((e) => e.expressionName).sort();
@@ -45,9 +48,11 @@ function logVrmCapabilities(vrm: VRM): void {
   const hasArkit = arkitMarkers.filter((n) => lower.has(n)).length;
   const legacyMarkers = ['blink', 'happy', 'aa', 'a'];
   const hasLegacy = legacyMarkers.filter((n) => lower.has(n)).length;
-  console.warn(
-    `[VRM-Capability] ${names.length} Expressions: ARKit-Marker: ${hasArkit}/4 (case-insensitive), Legacy-Marker: ${hasLegacy}/4.`,
-  );
+  log.info('VRM-Capability', {
+    expressions: names.length,
+    arkitMarkers: `${hasArkit}/4`,
+    legacyMarkers: `${hasLegacy}/4`,
+  });
 }
 
 function applyAvatarMicroFollow(scene: THREE.Group, pose: PoseFrame): void {

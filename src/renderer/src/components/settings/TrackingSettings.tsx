@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import type { AppSettings } from '@shared/types';
+import { SliderRow, ToggleRow, SelectRow } from '@renderer/components/ui/FormRows';
 
 interface TrackingSettingsProps {
   settings: AppSettings;
@@ -126,72 +127,23 @@ const EngineSelector = memo(function EngineSelector({
   const isWindows = platform.includes('win');
   const nvidiaAvailable = isWindows;
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 13 }}>Tracking-Engine</span>
-      <select
-        value={settings.trackingEngine}
-        onChange={(e) => void onUpdate('trackingEngine', e.target.value as 'mediapipe' | 'nvidia')}
-      >
-        <option value="mediapipe">MediaPipe (Standard, Cross-Plattform)</option>
-        <option value="nvidia" disabled={!nvidiaAvailable}>
-          NVIDIA Broadcast (RTX-GPU){!nvidiaAvailable ? ' — nur Windows + RTX' : ''}
-        </option>
-      </select>
-      <small style={{ color: '#a0a0a8', fontSize: 11 }}>
-        {nvidiaAvailable
+    <SelectRow<'mediapipe' | 'nvidia'>
+      label="Tracking-Engine"
+      value={settings.trackingEngine}
+      options={[
+        { value: 'mediapipe', label: 'MediaPipe (Standard, Cross-Plattform)' },
+        {
+          value: 'nvidia',
+          label: `NVIDIA Broadcast (RTX-GPU)${!nvidiaAvailable ? ' — nur Windows + RTX' : ''}`,
+          disabled: !nvidiaAvailable,
+        },
+      ]}
+      hint={
+        nvidiaAvailable
           ? 'NVIDIA-Engine nutzt CUDA-Backend für präziseres Tracking auf RTX-GPUs. Engine wird nach Auswahl gestartet.'
-          : 'NVIDIA-Engine ist nur auf Windows-Builds mit RTX-GPU verfügbar. Auf Mac wird MediaPipe verwendet.'}
-      </small>
-    </label>
-  );
-});
-
-interface SliderRowProps {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (value: number) => void;
-}
-
-const SliderRow = memo(function SliderRow({
-  label,
-  value,
-  min,
-  max,
-  step,
-  onChange,
-}: SliderRowProps): JSX.Element {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between' }}>
-        <span>{label}</span>
-        <span style={{ color: '#7aa7ff', fontFamily: 'ui-monospace, monospace' }}>{value.toFixed(2)}</span>
-      </span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
-    </label>
-  );
-});
-
-interface ToggleRowProps {
-  label: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-}
-
-const ToggleRow = memo(function ToggleRow({ label, value, onChange }: ToggleRowProps): JSX.Element {
-  return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
-      <span style={{ fontSize: 13 }}>{label}</span>
-    </label>
+          : 'NVIDIA-Engine ist nur auf Windows-Builds mit RTX-GPU verfügbar. Auf Mac wird MediaPipe verwendet.'
+      }
+      onChange={(v) => void onUpdate('trackingEngine', v)}
+    />
   );
 });

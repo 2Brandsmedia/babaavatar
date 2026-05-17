@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import type { AppSettings, GestureAction, GestureName } from '@shared/types';
 import { GESTURE_NAMES } from '@shared/types';
+import { SliderRow, ToggleRow } from '@renderer/components/ui/FormRows';
 import { GestureRow } from './GestureRow';
 
 interface GestureSettingsProps {
@@ -71,50 +72,5 @@ export const GestureSettings = memo(function GestureSettings({
         ))}
       </div>
     </div>
-  );
-});
-
-interface SliderRowProps {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  format: (value: number) => string;
-  onChange: (value: number) => void;
-}
-
-const SliderRow = memo(function SliderRow({
-  label,
-  value,
-  min,
-  max,
-  step,
-  format,
-  onChange,
-}: SliderRowProps): JSX.Element {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between' }}>
-        <span>{label}</span>
-        <span style={{ color: '#7aa7ff', fontFamily: 'ui-monospace, monospace' }}>{format(value)}</span>
-      </span>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} />
-    </label>
-  );
-});
-
-interface ToggleRowProps {
-  label: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-}
-
-const ToggleRow = memo(function ToggleRow({ label, value, onChange }: ToggleRowProps): JSX.Element {
-  return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
-      <span style={{ fontSize: 13 }}>{label}</span>
-    </label>
   );
 });

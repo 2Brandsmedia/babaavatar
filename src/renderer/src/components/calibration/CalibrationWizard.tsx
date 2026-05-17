@@ -4,6 +4,7 @@ import { api } from '@renderer/lib/ipc/api';
 import { WebcamPreview } from '@renderer/components/webcam-preview/WebcamPreview';
 import { STEPS, type StepId } from './steps';
 import { CalibrationStepView } from './CalibrationStepView';
+import { ActionBox, NavBar } from './calibration-ui';
 
 interface CalibrationWizardProps {
   activeAvatarId: string | null;
@@ -72,18 +73,15 @@ export const CalibrationWizard = memo(function CalibrationWizard({
   );
 
   const goPrev = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);
-  const goNext = useCallback(
-    () => setStepIndex((i) => Math.min(total - 1, i + 1)),
-    [total],
-  );
+  const goNext = useCallback(() => setStepIndex((i) => Math.min(total - 1, i + 1)), [total]);
 
   const isLast = stepIndex === total - 1;
   const showFinish = current?.id === 'hands' && completed.has('hands');
 
-  const layoutMode = useMemo<'avatar-only' | 'webcam-content' | 'content-only'>(() => {
+  const layoutMode = useMemo<'webcam-content' | 'content-only'>(() => {
     if (!current) return 'content-only';
-    if (current.id === 'avatar') return 'content-only';
-    if (current.id === 'welcome' || current.id === 'done') return 'content-only';
+    if (current.id === 'avatar' || current.id === 'welcome' || current.id === 'done')
+      return 'content-only';
     return 'webcam-content';
   }, [current]);
 
@@ -205,119 +203,6 @@ export const CalibrationWizard = memo(function CalibrationWizard({
             showFinish={false}
           />
         </div>
-      )}
-    </div>
-  );
-});
-
-interface ActionBoxProps {
-  stepId: StepId;
-  profile: AvatarProfile | null;
-  saving: boolean;
-  onApply: (patch: Partial<AvatarProfile['calibration']>) => void;
-  onStepComplete: () => void;
-  onPrev: () => void;
-  onNext: () => void;
-  canPrev: boolean;
-  canNext: boolean;
-  isLast: boolean;
-  showFinish: boolean;
-}
-
-const ActionBox = memo(function ActionBox({
-  stepId,
-  profile,
-  saving,
-  onApply,
-  onStepComplete,
-  onPrev,
-  onNext,
-  canPrev,
-  canNext,
-  isLast,
-  showFinish,
-}: ActionBoxProps): JSX.Element {
-  return (
-    <div
-      style={{
-        background: '#15151a',
-        border: '1px solid #2a2a32',
-        padding: 20,
-        borderRadius: 12,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-      }}
-    >
-      <CalibrationStepView
-        stepId={stepId}
-        profile={profile}
-        onApply={onApply}
-        saving={saving}
-        onComplete={onStepComplete}
-      />
-      <NavBar
-        onPrev={onPrev}
-        onNext={onNext}
-        canPrev={canPrev}
-        canNext={canNext}
-        isLast={isLast}
-        showFinish={showFinish}
-      />
-    </div>
-  );
-});
-
-interface NavBarProps {
-  onPrev: () => void;
-  onNext: () => void;
-  canPrev: boolean;
-  canNext: boolean;
-  isLast: boolean;
-  showFinish: boolean;
-}
-
-const NavBar = memo(function NavBar({
-  onPrev,
-  onNext,
-  canPrev,
-  canNext,
-  isLast,
-  showFinish,
-}: NavBarProps): JSX.Element {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 8,
-        marginTop: 'auto',
-        paddingTop: 12,
-        borderTop: '1px solid #2a2a32',
-      }}
-    >
-      <button
-        type="button"
-        aria-label="Vorheriger Schritt"
-        onClick={onPrev}
-        disabled={!canPrev}
-      >
-        Zurück
-      </button>
-      <div style={{ flex: 1 }} />
-      {showFinish ? (
-        <button type="button" className="primary" onClick={onNext}>
-          Kalibrierung abschließen ✓
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="primary"
-          aria-label="Nächster Schritt"
-          onClick={onNext}
-          disabled={isLast || !canNext}
-        >
-          Weiter
-        </button>
       )}
     </div>
   );

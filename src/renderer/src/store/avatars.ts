@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import type { AvatarRecord } from '@shared/types';
 import { api } from '@renderer/lib/ipc/api';
 import { renderVrmThumbnail } from '@renderer/lib/avatar/thumbnail';
+import { createLogger } from '@renderer/lib/logger';
+
+const log = createLogger('avatars-store');
 
 interface AvatarsState {
   avatars: AvatarRecord[];
@@ -37,7 +40,7 @@ export const useAvatarsStore = create<AvatarsState>((set, get) => ({
     try {
       thumbnailDataUrl = await renderVrmThumbnail(buffer.slice(0));
     } catch (err) {
-      console.warn('Thumbnail-Rendering fehlgeschlagen', err);
+      log.warn('Thumbnail-Rendering fehlgeschlagen', err);
     }
     const record = await api.avatars.importFile({
       buffer,
