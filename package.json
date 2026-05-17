@@ -1,6 +1,6 @@
 {
   "name": "babaavatar",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "BabaAvatar — VTuber-Anwendung: Webcam-Tracking (Gesicht, Oberkörper, Hände) auf VRM-Avatare, für OBS-Streaming via Window Capture mit Chroma-Key.",
   "main": "out/main/index.js",
   "author": "2Brands Media GmbH <info@2brandsmedia.com>",

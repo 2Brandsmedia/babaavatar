@@ -1,10 +1,30 @@
 {
-  "$comment": "Kuratierte Liste freier VRM-Avatare. Alle Quellen sind ohne Login direkt von GitHub abrufbar.",
+  "$comment": "Kuratierte Liste freier VRM-Avatare. Alle Quellen sind ohne Login direkt von GitHub abrufbar. Perfect-Sync-Modelle haben alle 52 ARKit-BlendShapes UND volle Finger-Bones für komplette Mimik + Hand-Animation.",
   "avatars": [
+    {
+      "id": "hinzka-perfect-sync-f",
+      "displayName": "VRoid Perfect Sync (Weiblich)",
+      "description": "★ EMPFOHLEN — Vollständig ausgestatteter VRoid-Avatar mit allen 52 ARKit-BlendShapes (volle Gesichts-Mimik) + Standard-VRoid-Skelett inkl. aller 30 Finger-Bones (komplette Hand-Animation).",
+      "author": "hinzka (basiert auf VRoid Studio Sample)",
+      "license": "Open Sharing — research & demo (Quelle prüfen für Kommerzielles)",
+      "downloadUrl": "https://raw.githubusercontent.com/hinzka/52blendshapes-for-VRoid-face/main/VRoid_V110_Female_v1.1.3.vrm",
+      "previewUrl": "",
+      "tags": ["perfect-sync", "vrm1", "52-blendshapes", "full-hands", "empfohlen"]
+    },
+    {
+      "id": "hinzka-perfect-sync-m",
+      "displayName": "VRoid Perfect Sync (Männlich)",
+      "description": "★ EMPFOHLEN — Männliche Variante mit allen 52 ARKit-BlendShapes und kompletter Finger-Hierarchie. Volle Mimik- und Hand-Tracking-Unterstützung.",
+      "author": "hinzka (basiert auf VRoid Studio Sample)",
+      "license": "Open Sharing — research & demo (Quelle prüfen für Kommerzielles)",
+      "downloadUrl": "https://raw.githubusercontent.com/hinzka/52blendshapes-for-VRoid-face/main/VRoid_V110_Male_v1.1.3.vrm",
+      "previewUrl": "",
+      "tags": ["perfect-sync", "vrm1", "52-blendshapes", "full-hands", "empfohlen"]
+    },
     {
       "id": "alicia-solid",
       "displayName": "Alicia Solid",
-      "description": "Das Maskottchen von Niconi Solid (Niconico, Dwango). Sehr permissive Lizenz: frei für Videos, Spiele, Demos, kommerziell und privat.",
+      "description": "Das Maskottchen von Niconi Solid (Niconico, Dwango). Sehr permissive Lizenz: frei für Videos, Spiele, Demos, kommerziell und privat. Hat Standard-VRoid-BlendShapes (kein Perfect Sync).",
       "author": "Dwango / Niconi Solid",
       "license": "Niconi-Solid License (sehr permissiv)",
       "downloadUrl": "https://github.com/vrm-c/UniVRM/raw/master/Tests/Models/Alicia_vrm-0.51/AliciaSolid_vrm-0.51.vrm",
