@@ -62,3 +62,27 @@ export const DEFAULT_TRACKING_SETTINGS = {
   autoBlinkEnabled: true,
   mirrorMode: true,
 } as const;
+
+export const GESTURE_LABELS = {
+  thumbsUp: 'Daumen hoch',
+  fist: 'Faust',
+  peace: 'Peace / Victory',
+  openPalm: 'Offene Hand',
+  wave: 'Winken',
+  heart: 'Herz (beide Hände)',
+  ok: 'OK-Zeichen',
+  pointing: 'Zeigefinger',
+} as const;
+
+export const DEFAULT_GESTURE_MAPPINGS = {
+  thumbsUp: { type: 'expression', name: 'happy', durationMs: 2000 },
+  fist: { type: 'expression', name: 'angry', durationMs: 2000 },
+  peace: { type: 'expression', name: 'relaxed', durationMs: 2000 },
+  openPalm: { type: 'expression', name: 'surprised', durationMs: 1500 },
+  wave: null,
+  heart: { type: 'expression', name: 'happy', durationMs: 3000 },
+  ok: null,
+  pointing: null,
+} as const;
+
+export const VMC_DEFAULT_PORT = 39539;

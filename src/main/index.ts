@@ -10,6 +10,7 @@ import { registerDownloadHandler } from './download-handler.js';
 import { registerVroidProtocol, handleOpenUrl, focusControlForCallback } from './vroid-api.js';
 import { unregisterAll as unregisterHotkeys } from './hotkeys.js';
 import { initAutoUpdater } from './auto-updater.js';
+import { stopVmcServer } from './vmc-server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,6 +91,7 @@ app.on('before-quit', () => {
   isQuitting = true;
   log.info('Beende BabaAvatar');
   unregisterHotkeys();
+  void stopVmcServer();
   if (outputWindow && !outputWindow.isDestroyed()) {
     outputWindow.removeAllListeners('close');
     outputWindow.destroy();

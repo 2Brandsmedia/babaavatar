@@ -5,6 +5,7 @@ import { framesToPose, type RawTrackingResult } from './rigging';
 import { PoseSmoother } from './pose-smoother';
 import { AutoCalibration } from './auto-calibration';
 import { HandSmoother } from './hand-smoother';
+import { GestureTracker } from './gesture-tracker';
 import { useTrackingStore, type RawLandmark } from '@renderer/store/tracking';
 import { useSettingsStore } from '@renderer/store/settings';
 
@@ -63,6 +64,7 @@ export function useTracking(options: UseTrackingOptions): UseTrackingResult {
     const smoother = new PoseSmoother(4.0, 0.05);
     const autoCalibration = new AutoCalibration();
     const handSmoother = new HandSmoother();
+    const gestureTracker = new GestureTracker();
     setError(null);
 
     getTrackingEngine()
@@ -96,9 +98,34 @@ export function useTracking(options: UseTrackingOptions): UseTrackingResult {
               autoCalibration,
               mirror: mirrorRef.current,
             });
-            const frame = smoother.smooth(rawFrame);
+            const smoothed = smoother.smooth(rawFrame);
+            const { smoothedHands } = publishRawLandmarks(
+              faceResult,
+              poseResult,
+              handResult,
+              handSmoother,
+              now,
+            );
+            const settings = useSettingsStore.getState().settings;
+            let gestures: typeof smoothed.gestures = null;
+            if (settings?.gestureDetectionEnabled && smoothedHands.length > 0) {
+              const states = gestureTracker.update(smoothedHands, now, {
+                holdMs: settings.gestureHoldMs,
+                cooldownMs: settings.gestureCooldownMs,
+                minConfidence: settings.gestureMinConfidence,
+                edgeThreshold: settings.handEdgeThreshold,
+              });
+              if (states.length > 0) gestures = states;
+              const store = useTrackingStore.getState();
+              store.setGestureLive(states);
+              for (const g of states) {
+                if (g.justTriggered) store.setGestureLastTrigger(g.name);
+              }
+            } else {
+              useTrackingStore.getState().setGestureLive([]);
+            }
+            const frame = { ...smoothed, gestures };
             setPose(frame);
-            publishRawLandmarks(faceResult, poseResult, handResult, handSmoother, now);
           } catch (err) {
             dropped += 1;
             console.error('Tracking-Fehler im Frame', err);
@@ -148,7 +175,7 @@ function publishRawLandmarks(
   },
   handSmoother: HandSmoother,
   timestamp: number,
-): void {
+): { smoothedHands: Array<{ landmarks: RawLandmark[]; side: 'Left' | 'Right' }> } {
   const store = useTrackingStore.getState();
   const face = faceResult.faceLandmarks?.[0] ?? null;
   const pose = poseResult.landmarks?.[0] ?? null;
@@ -162,4 +189,5 @@ function publishRawLandmarks(
   }
   const smoothedHands = handSmoother.smooth(hands, timestamp);
   store.setRawLandmarks({ face, pose, hands: smoothedHands });
+  return { smoothedHands };
 }

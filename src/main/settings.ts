@@ -1,7 +1,12 @@
 import { safeStorage } from 'electron';
 import Store from 'electron-store';
 import type { AppSettings } from '../shared/types.js';
-import { DEFAULT_CHROMA_COLOR, DEFAULT_TRACKING_SETTINGS } from '../shared/constants.js';
+import {
+  DEFAULT_CHROMA_COLOR,
+  DEFAULT_GESTURE_MAPPINGS,
+  DEFAULT_TRACKING_SETTINGS,
+  VMC_DEFAULT_PORT,
+} from '../shared/constants.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('settings');
@@ -31,11 +36,24 @@ const defaults: AppSettings = {
   autoZoomMax: 2.2,
   lipsyncFromCamera: true,
   lipsyncFromMic: true,
+  micGain: 1.4,
+  micNoiseGate: 0.06,
   trackingEngine: 'mediapipe',
   showFaceMesh: true,
   armIkEnabled: true,
   handTrackingEnabled: true,
   showPerformanceStats: false,
+  gestureDetectionEnabled: true,
+  gestureHoldMs: 500,
+  gestureCooldownMs: 1500,
+  gestureMinConfidence: 0.7,
+  gestureMappings: { ...DEFAULT_GESTURE_MAPPINGS },
+  handEdgeThreshold: 0.08,
+  vmcEnabled: false,
+  vmcPort: VMC_DEFAULT_PORT,
+  vmcSourceFace: true,
+  vmcSourceHead: true,
+  springBoneColliderMultiplier: 1,
 };
 
 interface StoreSchema extends AppSettings {
@@ -74,11 +92,25 @@ export function getAll(): AppSettings {
     autoZoomMax: raw.autoZoomMax ?? defaults.autoZoomMax,
     lipsyncFromCamera: raw.lipsyncFromCamera ?? defaults.lipsyncFromCamera,
     lipsyncFromMic: raw.lipsyncFromMic ?? defaults.lipsyncFromMic,
+    micGain: raw.micGain ?? defaults.micGain,
+    micNoiseGate: raw.micNoiseGate ?? defaults.micNoiseGate,
     trackingEngine: raw.trackingEngine ?? defaults.trackingEngine,
     showFaceMesh: raw.showFaceMesh ?? defaults.showFaceMesh,
     armIkEnabled: raw.armIkEnabled ?? defaults.armIkEnabled,
     handTrackingEnabled: raw.handTrackingEnabled ?? defaults.handTrackingEnabled,
     showPerformanceStats: raw.showPerformanceStats ?? defaults.showPerformanceStats,
+    gestureDetectionEnabled: raw.gestureDetectionEnabled ?? defaults.gestureDetectionEnabled,
+    gestureHoldMs: raw.gestureHoldMs ?? defaults.gestureHoldMs,
+    gestureCooldownMs: raw.gestureCooldownMs ?? defaults.gestureCooldownMs,
+    gestureMinConfidence: raw.gestureMinConfidence ?? defaults.gestureMinConfidence,
+    gestureMappings: raw.gestureMappings ?? defaults.gestureMappings,
+    handEdgeThreshold: raw.handEdgeThreshold ?? defaults.handEdgeThreshold,
+    vmcEnabled: raw.vmcEnabled ?? defaults.vmcEnabled,
+    vmcPort: raw.vmcPort ?? defaults.vmcPort,
+    vmcSourceFace: raw.vmcSourceFace ?? defaults.vmcSourceFace,
+    vmcSourceHead: raw.vmcSourceHead ?? defaults.vmcSourceHead,
+    springBoneColliderMultiplier:
+      raw.springBoneColliderMultiplier ?? defaults.springBoneColliderMultiplier,
   };
 }
 

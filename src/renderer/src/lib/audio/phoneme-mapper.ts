@@ -8,12 +8,18 @@ export interface PhonemeWeights {
   o: number;
 }
 
-export function featuresToPhonemes(features: LipsyncFeatures, sensitivity: number): PhonemeWeights {
-  const energy = Math.min(features.rms * sensitivity, 1);
-  if (energy < 0.05) {
-    return { a: 0, i: 0, u: 0, e: 0, o: 0 };
-  }
+export const SILENT_PHONEMES: PhonemeWeights = { a: 0, i: 0, u: 0, e: 0, o: 0 };
 
+export interface PhonemeMapResult {
+  phonemes: PhonemeWeights;
+  level: number;
+}
+
+export function mapFeaturesToPhonemes(
+  features: LipsyncFeatures,
+  gain: number,
+): PhonemeMapResult {
+  const level = clampUnit(features.rms * gain);
   const mfcc = features.mfcc;
   const c1 = mfcc[1] ?? 0;
   const c2 = mfcc[2] ?? 0;
@@ -26,12 +32,23 @@ export function featuresToPhonemes(features: LipsyncFeatures, sensitivity: numbe
   const oWeight = clampUnit(0.4 - c2 * 0.05);
 
   const sum = aWeight + iWeight + uWeight + eWeight + oWeight || 1;
+  const phonemes: PhonemeWeights = {
+    a: (aWeight / sum) * level,
+    i: (iWeight / sum) * level,
+    u: (uWeight / sum) * level,
+    e: (eWeight / sum) * level,
+    o: (oWeight / sum) * level,
+  };
+  return { phonemes, level };
+}
+
+export function scalePhonemes(phonemes: PhonemeWeights, factor: number): PhonemeWeights {
   return {
-    a: (aWeight / sum) * energy,
-    i: (iWeight / sum) * energy,
-    u: (uWeight / sum) * energy,
-    e: (eWeight / sum) * energy,
-    o: (oWeight / sum) * energy,
+    a: phonemes.a * factor,
+    i: phonemes.i * factor,
+    u: phonemes.u * factor,
+    e: phonemes.e * factor,
+    o: phonemes.o * factor,
   };
 }
 

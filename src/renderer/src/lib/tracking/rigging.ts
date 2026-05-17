@@ -92,6 +92,7 @@ export function framesToPose(raw: RawTrackingResult, ctx: RiggingContext): PoseF
     face: solveFace(raw.face, ctx.video),
     pose: solvePose(raw.pose, ctx.video, ctx.mirror),
     hands,
+    gestures: null,
     faceMetrics: metrics,
     irisDistanceCm,
     blendShapes,

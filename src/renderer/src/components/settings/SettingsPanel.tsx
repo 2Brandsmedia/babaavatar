@@ -5,11 +5,25 @@ import { BackgroundSettings } from './BackgroundSettings';
 import { OutputWindowSettings } from './OutputWindowSettings';
 import { PerformanceSettings } from './PerformanceSettings';
 import { CompositionSettings } from './CompositionSettings';
+import { AudioSettings } from './AudioSettings';
+import { GestureSettings } from './GestureSettings';
+import { ExternalTrackerSettings } from './ExternalTrackerSettings';
 
-type Tab = 'tracking' | 'composition' | 'background' | 'output' | 'performance';
+type Tab =
+  | 'tracking'
+  | 'audio'
+  | 'gestures'
+  | 'external'
+  | 'composition'
+  | 'background'
+  | 'output'
+  | 'performance';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'tracking', label: 'Tracking' },
+  { id: 'audio', label: 'Audio' },
+  { id: 'gestures', label: 'Gesten' },
+  { id: 'external', label: 'Externe Tracker' },
   { id: 'composition', label: 'Komposition' },
   { id: 'background', label: 'Hintergrund' },
   { id: 'output', label: 'Output-Fenster' },
@@ -47,6 +61,9 @@ export const SettingsPanel = memo(function SettingsPanel(): JSX.Element {
 
       <div>
         {tab === 'tracking' && <TrackingSettings settings={settings} onUpdate={update} />}
+        {tab === 'audio' && <AudioSettings settings={settings} onUpdate={update} />}
+        {tab === 'gestures' && <GestureSettings settings={settings} onUpdate={update} />}
+        {tab === 'external' && <ExternalTrackerSettings settings={settings} onUpdate={update} />}
         {tab === 'composition' && <CompositionSettings settings={settings} onUpdate={update} />}
         {tab === 'background' && <BackgroundSettings settings={settings} onUpdate={update} />}
         {tab === 'output' && <OutputWindowSettings settings={settings} onUpdate={update} />}

@@ -49,6 +49,13 @@ export const IPC = {
   // Kuratierte Liste
   CURATED_LIST: 'curated:list',
   CURATED_DOWNLOAD: 'curated:download',
+
+  // VMC (Virtual Motion Capture) — externe Tracker
+  VMC_START: 'vmc:start',
+  VMC_STOP: 'vmc:stop',
+  VMC_STATUS: 'vmc:status',
+  VMC_FRAME: 'vmc:frame',
+  VMC_LOCAL_IPS: 'vmc:local-ips',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

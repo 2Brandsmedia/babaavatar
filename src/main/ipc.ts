@@ -24,6 +24,8 @@ import * as profiles from './profiles.js';
 import * as hotkeys from './hotkeys.js';
 import type { AvatarProfile, ExpressionHotkey } from '../shared/types.js';
 import { createLogger } from './logger.js';
+import { startVmcServer, stopVmcServer, getVmcStatus, setVmcWindows } from './vmc-server.js';
+import os from 'node:os';
 
 interface IpcContext {
   controlWindow: BrowserWindow;
@@ -50,7 +52,31 @@ export function registerIpcHandlers(context: IpcContext): void {
   registerVroidHandlers();
   registerProfileHandlers();
   registerHotkeyHandlers();
+  registerVmcHandlers();
+  setVmcWindows({ controlWindow: context.controlWindow, outputWindow: context.outputWindow });
   log.info('IPC-Handler registriert');
+}
+
+function registerVmcHandlers(): void {
+  ipcMain.handle(IPC.VMC_START, async (_e, port: number) => {
+    await startVmcServer(port);
+    return getVmcStatus();
+  });
+  ipcMain.handle(IPC.VMC_STOP, async () => {
+    await stopVmcServer();
+    return getVmcStatus();
+  });
+  ipcMain.handle(IPC.VMC_STATUS, () => getVmcStatus());
+  ipcMain.handle(IPC.VMC_LOCAL_IPS, () => {
+    const result: string[] = [];
+    const ifaces = os.networkInterfaces();
+    for (const name of Object.keys(ifaces)) {
+      for (const info of ifaces[name] ?? []) {
+        if (info.family === 'IPv4' && !info.internal) result.push(info.address);
+      }
+    }
+    return result;
+  });
 }
 
 function registerHotkeyHandlers(): void {

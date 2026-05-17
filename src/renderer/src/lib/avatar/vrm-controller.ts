@@ -306,12 +306,22 @@ function applyArmRestPose(vrm: VRM): void {
   if (rightLower) rightLower.quaternion.slerp(REST_LOWER_ARM, SLERP_REST);
 }
 
+const EXPRESSION_PRESETS: VRMExpressionPresetName[] = [
+  'happy' as VRMExpressionPresetName,
+  'angry' as VRMExpressionPresetName,
+  'sad' as VRMExpressionPresetName,
+  'surprised' as VRMExpressionPresetName,
+  'relaxed' as VRMExpressionPresetName,
+];
+
 function applyExpression(vrm: VRM, frame: PoseFrame): void {
-  if (!frame.expression || !vrm.expressionManager) return;
-  vrm.expressionManager.setValue(
-    frame.expression.name as VRMExpressionPresetName,
-    clamp01(frame.expression.weight),
-  );
+  const manager = vrm.expressionManager;
+  if (!manager) return;
+  const target = frame.expression;
+  for (const preset of EXPRESSION_PRESETS) {
+    const isTarget = target?.name === preset;
+    manager.setValue(preset, isTarget ? clamp01(target.weight) : 0);
+  }
 }
 
 function applyEuler(

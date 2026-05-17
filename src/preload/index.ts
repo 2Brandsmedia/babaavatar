@@ -52,6 +52,16 @@ const api = {
     unregister: (id: string): Promise<void> => ipcRenderer.invoke(IPC.HOTKEY_UNREGISTER, id),
   },
 
+  vmc: {
+    start: (port: number): Promise<{ running: boolean; port: number | null; lastMessageAt: number }> =>
+      ipcRenderer.invoke(IPC.VMC_START, port),
+    stop: (): Promise<{ running: boolean; port: number | null; lastMessageAt: number }> =>
+      ipcRenderer.invoke(IPC.VMC_STOP),
+    status: (): Promise<{ running: boolean; port: number | null; lastMessageAt: number }> =>
+      ipcRenderer.invoke(IPC.VMC_STATUS),
+    localIps: (): Promise<string[]> => ipcRenderer.invoke(IPC.VMC_LOCAL_IPS),
+  },
+
   profiles: {
     get: (avatarId: string): Promise<AvatarProfile> => ipcRenderer.invoke(IPC.PROFILE_GET, avatarId),
     set: (profile: AvatarProfile): Promise<AvatarProfile> =>

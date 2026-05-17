@@ -15,6 +15,12 @@ import { createPoseChannel } from '@renderer/lib/broadcast/pose-channel';
 import { createSettingsChannel } from '@renderer/lib/broadcast/settings-channel';
 import { createKalmanState, kalmanStep, type KalmanState } from '@renderer/lib/tracking/iris-distance';
 import { api } from '@renderer/lib/ipc/api';
+import {
+  getCurrentExpression,
+  triggerExpression,
+} from '@renderer/lib/expression/expression-bus';
+import { applyColliderMultiplier, resetCache } from '@renderer/lib/avatar/collider-tuning';
+import type { ExpressionHotkey, GestureName } from '@shared/types';
 
 const BASE_CAM_Y = 1.3;
 const BASE_CAM_Z = 2.6;
@@ -128,14 +134,26 @@ export const AvatarStage = memo(function AvatarStage({
     });
 
     const settingsChannel = createSettingsChannel();
+    let lastColliderMultiplier = Number.NaN;
     const unsubscribeSettings = settingsChannel.subscribe((settings) => {
       settingsRef.current = settings;
+      const multiplier = settings.springBoneColliderMultiplier;
+      const loaded = loadedRef.current;
+      if (loaded && multiplier !== lastColliderMultiplier) {
+        applyColliderMultiplier(loaded.vrm, multiplier);
+        lastColliderMultiplier = multiplier;
+      }
     });
     settingsChannel.sendRequest();
     const settingsRetry = window.setInterval(() => {
       if (!settingsRef.current) settingsChannel.sendRequest();
     }, 800);
     const stopSettingsRetry = window.setTimeout(() => window.clearInterval(settingsRetry), 12000);
+
+    const handledGestureKeys = new Set<string>();
+    const unsubscribeHotkey = api.on<ExpressionHotkey>(api.ipcChannels.HOTKEY_TRIGGERED, (h) => {
+      triggerExpression(h.expressionName, { source: 'hotkey' });
+    });
 
     const handleResize = (): void => {
       if (!sceneRef.current) return;
@@ -157,6 +175,28 @@ export const AvatarStage = memo(function AvatarStage({
         const now = performance.now();
         const poseFresh = pose && now - pose.timestamp < 2000;
         if (poseFresh && pose) {
+          if (pose.gestures && settings?.gestureMappings) {
+            for (const g of pose.gestures) {
+              const key = `${g.name}:${pose.timestamp}`;
+              if (!g.justTriggered || handledGestureKeys.has(key)) continue;
+              handledGestureKeys.add(key);
+              if (handledGestureKeys.size > 64) {
+                const first = handledGestureKeys.values().next().value as string | undefined;
+                if (first) handledGestureKeys.delete(first);
+              }
+              const mapping = settings.gestureMappings[g.name as GestureName];
+              if (mapping && mapping.type === 'expression') {
+                triggerExpression(mapping.name, {
+                  source: 'gesture',
+                  durationMs: mapping.durationMs,
+                });
+              }
+            }
+          }
+          const expression = getCurrentExpression(now);
+          const poseWithExpression = expression
+            ? { ...pose, expression }
+            : { ...pose, expression: null };
           const audioVolume = pose.audioPhonemes
             ? Math.max(
                 pose.audioPhonemes.A,
@@ -166,7 +206,7 @@ export const AvatarStage = memo(function AvatarStage({
                 pose.audioPhonemes.O,
               )
             : 0;
-          applyPoseToVrm(loaded.vrm, pose, {
+          applyPoseToVrm(loaded.vrm, poseWithExpression, {
             mirror: mirrorRef.current,
             lipsyncFromCamera: settings?.lipsyncFromCamera ?? true,
             lipsyncFromMic: settings?.lipsyncFromMic ?? true,
@@ -204,6 +244,7 @@ export const AvatarStage = memo(function AvatarStage({
       window.clearTimeout(stopSettingsRetry);
       unsubscribePose();
       unsubscribeSettings();
+      unsubscribeHotkey();
       channel.close();
       settingsChannel.close();
       if (loadedRef.current) {
@@ -238,6 +279,7 @@ export const AvatarStage = memo(function AvatarStage({
         }
         if (loadedRef.current) {
           sceneCtx.scene.remove(loadedRef.current.scene);
+          resetCache(loadedRef.current.vrm);
           disposeVrm(loadedRef.current);
         }
         sceneCtx.scene.add(loaded.scene);
@@ -245,6 +287,8 @@ export const AvatarStage = memo(function AvatarStage({
         loaded.scene.rotation.set(0, Math.PI, 0);
         resetIdle(loaded.vrm);
         applyRestArms(loaded.vrm);
+        const multiplier = settingsRef.current?.springBoneColliderMultiplier ?? 1;
+        applyColliderMultiplier(loaded.vrm, multiplier);
         loaded.vrm.update(0);
         loadedRef.current = loaded;
         onLoad?.(loaded.vrm);

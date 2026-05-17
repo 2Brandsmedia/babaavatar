@@ -81,6 +81,28 @@ export const TrackingSettings = memo(function TrackingSettings({
         value={settings.handTrackingEnabled}
         onChange={(v) => void onUpdate('handTrackingEnabled', v)}
       />
+      <SliderRow
+        label="Hand-Rand-Threshold (gegen Jitter am Bildschirmrand)"
+        value={settings.handEdgeThreshold}
+        min={0}
+        max={0.2}
+        step={0.01}
+        onChange={(v) => void onUpdate('handEdgeThreshold', v)}
+      />
+      <div style={{ height: 1, background: '#2a2a32', margin: '6px 0' }} />
+      <SliderRow
+        label="Haar/Cloth-Collider-Multiplier (kleiner = weicher)"
+        value={settings.springBoneColliderMultiplier}
+        min={0.3}
+        max={1.5}
+        step={0.05}
+        onChange={(v) => void onUpdate('springBoneColliderMultiplier', v)}
+      />
+      <p style={{ margin: '-4px 0 0 0', fontSize: 11, color: '#6a6a72', lineHeight: 1.5 }}>
+        Viele VRMs auf VRoid Hub haben überdimensionierte Kollisionsradien an Kopf/Schulter,
+        wodurch Haare und Kleidung steif wirken. Werte zwischen 0.5 und 0.7 lockern das
+        meist sichtbar auf. Auf 1.0 lassen, wenn der Avatar so passt.
+      </p>
       <ToggleRow
         label="Performance-Stats im Output anzeigen (FPS, Triangles, RAM)"
         value={settings.showPerformanceStats}

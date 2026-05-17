@@ -86,11 +86,24 @@ export interface AppSettings {
   autoZoomMax: number;
   lipsyncFromCamera: boolean;
   lipsyncFromMic: boolean;
+  micGain: number;
+  micNoiseGate: number;
   trackingEngine: 'mediapipe' | 'nvidia';
   showFaceMesh: boolean;
   armIkEnabled: boolean;
   handTrackingEnabled: boolean;
   showPerformanceStats: boolean;
+  gestureDetectionEnabled: boolean;
+  gestureHoldMs: number;
+  gestureCooldownMs: number;
+  gestureMinConfidence: number;
+  gestureMappings: Partial<Record<GestureName, GestureAction | null>>;
+  handEdgeThreshold: number;
+  vmcEnabled: boolean;
+  vmcPort: number;
+  vmcSourceFace: boolean;
+  vmcSourceHead: boolean;
+  springBoneColliderMultiplier: number;
 }
 
 export interface Vec3 {
@@ -162,6 +175,35 @@ export interface HandsRig {
   right: HandRig | null;
 }
 
+export const GESTURE_NAMES = [
+  'thumbsUp',
+  'fist',
+  'peace',
+  'openPalm',
+  'wave',
+  'heart',
+  'ok',
+  'pointing',
+] as const;
+
+export type GestureName = (typeof GESTURE_NAMES)[number];
+
+export interface GestureState {
+  name: GestureName;
+  confidence: number;
+  side: 'left' | 'right' | 'both';
+  heldMs: number;
+  justTriggered: boolean;
+}
+
+export interface GestureActionExpression {
+  type: 'expression';
+  name: string;
+  durationMs: number;
+}
+
+export type GestureAction = GestureActionExpression;
+
 export interface FaceMetrics {
   centerX: number;
   centerY: number;
@@ -189,6 +231,7 @@ export interface PoseFrame {
   face: FaceRig | null;
   pose: PoseRig | null;
   hands: HandsRig | null;
+  gestures: GestureState[] | null;
   faceMetrics: FaceMetrics | null;
   irisDistanceCm: number | null;
   blendShapes: BlendShapeMap | null;
@@ -204,6 +247,18 @@ export interface PoseFrame {
     name: string;
     weight: number;
   } | null;
+}
+
+export interface VmcSnapshot {
+  blendShapes: Record<string, number>;
+  headQuat: { x: number; y: number; z: number; w: number } | null;
+  receivedAt: number;
+}
+
+export interface VmcStatus {
+  running: boolean;
+  port: number | null;
+  lastMessageAt: number;
 }
 
 export interface DownloadProgress {

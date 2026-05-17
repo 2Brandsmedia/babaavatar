@@ -5,6 +5,10 @@ import { useTracking } from '@renderer/lib/tracking/use-tracking';
 import { useLipsync } from '@renderer/lib/audio/use-lipsync';
 import { createPoseChannel } from '@renderer/lib/broadcast/pose-channel';
 import { resetTrackingEngine } from '@renderer/lib/tracking/mediapipe-setup';
+import { subscribeVmcFrames } from '@renderer/lib/tracking/vmc-channel';
+import { mergeVmcIntoPose } from '@renderer/lib/tracking/vmc-merge';
+import { api } from '@renderer/lib/ipc/api';
+import type { VmcSnapshot } from '@shared/types';
 
 export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Element {
   const { settings } = useSettingsStore();
@@ -19,6 +23,7 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
     setMetrics,
     setTrackingState,
     setLipsyncState,
+    setMicLevel,
   } = useTrackingStore();
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -26,7 +31,28 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
   const channelRef = useRef<ReturnType<typeof createPoseChannel> | null>(null);
   if (channelRef.current === null) channelRef.current = createPoseChannel();
 
-  const sensitivity = settings?.mouthSensitivity ?? 1;
+  const micGain = settings?.micGain ?? 1.4;
+  const micNoiseGate = settings?.micNoiseGate ?? 0.06;
+  const vmcSnapshotRef = useRef<VmcSnapshot | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeVmcFrames((snapshot) => {
+      vmcSnapshotRef.current = snapshot;
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!settings) return;
+    if (settings.vmcEnabled) {
+      void api.vmc.start(settings.vmcPort).catch(() => undefined);
+    } else {
+      void api.vmc.stop().catch(() => undefined);
+      vmcSnapshotRef.current = null;
+    }
+  }, [settings?.vmcEnabled, settings?.vmcPort]);
 
   useEffect(() => {
     if (!trackingEnabled) {
@@ -86,13 +112,14 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
   const lipsync = useLipsync({
     deviceId: microphoneId,
     enabled: lipsyncEnabled,
-    sensitivity,
+    gain: micGain,
+    noiseGate: micNoiseGate,
     reloadKey: reloadCounter,
   });
 
   useEffect(() => {
     if (!tracking.pose) return;
-    const enriched = {
+    let enriched = {
       ...tracking.pose,
       audioPhonemes: lipsync.ready
         ? {
@@ -104,9 +131,26 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
           }
         : null,
     };
+
+    const vmc = vmcSnapshotRef.current;
+    if (settings?.vmcEnabled && vmc && Date.now() - vmc.receivedAt < 2000) {
+      enriched = mergeVmcIntoPose(enriched, vmc, {
+        applyFace: settings.vmcSourceFace,
+        applyHead: settings.vmcSourceHead,
+      });
+    }
+
     setPose(enriched);
     channelRef.current?.publish(enriched);
-  }, [tracking.pose, lipsync.phonemes, lipsync.ready, setPose]);
+  }, [
+    tracking.pose,
+    lipsync.phonemes,
+    lipsync.ready,
+    setPose,
+    settings?.vmcEnabled,
+    settings?.vmcSourceFace,
+    settings?.vmcSourceHead,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -126,6 +170,10 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
   useEffect(() => {
     setLipsyncState(lipsync.ready, lipsync.error);
   }, [lipsync.ready, lipsync.error, setLipsyncState]);
+
+  useEffect(() => {
+    setMicLevel(lipsync.level, lipsync.gateOpen);
+  }, [lipsync.level, lipsync.gateOpen, setMicLevel]);
 
   return (
     <video

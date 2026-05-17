@@ -61,6 +61,7 @@ export class PoseSmoother {
           }
         : null,
       hands: this.smoothHands(frame.hands, t),
+      gestures: frame.gestures,
       irisDistanceCm: frame.irisDistanceCm,
       blendShapes: frame.blendShapes,
       quality: frame.quality,
