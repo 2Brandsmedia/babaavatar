@@ -1,10 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import type { AvatarProfile } from '@shared/types';
 import { api } from '@renderer/lib/ipc/api';
+import { useSettingsStore } from '@renderer/store/settings';
 import { WebcamPreview } from '@renderer/components/webcam-preview/WebcamPreview';
-import { STEPS, type StepId } from './steps';
+import { STEPS, computeSkippedSteps, type StepId } from './steps';
 import { CalibrationStepView } from './CalibrationStepView';
 import { ActionBox, NavBar } from './calibration-ui';
+import { SkipBanner, StepBar } from './StepBar';
 
 interface CalibrationWizardProps {
   activeAvatarId: string | null;
@@ -13,10 +15,20 @@ interface CalibrationWizardProps {
 export const CalibrationWizard = memo(function CalibrationWizard({
   activeAvatarId,
 }: CalibrationWizardProps): JSX.Element {
+  const settings = useSettingsStore((s) => s.settings);
   const [stepIndex, setStepIndex] = useState(0);
   const [profile, setProfile] = useState<AvatarProfile | null>(null);
   const [saving, setSaving] = useState(false);
   const [completed, setCompleted] = useState<Set<StepId>>(new Set());
+
+  const skipped = useMemo(
+    () =>
+      computeSkippedSteps(
+        settings?.trackingSource ?? 'webcam',
+        settings?.vmcSourceFace ?? true,
+      ),
+    [settings?.trackingSource, settings?.vmcSourceFace],
+  );
 
   useEffect(() => {
     if (!activeAvatarId) {
@@ -72,11 +84,36 @@ export const CalibrationWizard = memo(function CalibrationWizard({
     [profile],
   );
 
-  const goPrev = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);
-  const goNext = useCallback(() => setStepIndex((i) => Math.min(total - 1, i + 1)), [total]);
+  const goPrev = useCallback(() => {
+    setStepIndex((i) => {
+      let next = i - 1;
+      while (next > 0 && current && skipped.skippedIds.has(STEPS[next]?.id as StepId)) {
+        next -= 1;
+      }
+      return Math.max(0, next);
+    });
+  }, [current, skipped.skippedIds]);
+
+  const goNext = useCallback(() => {
+    setStepIndex((i) => {
+      let next = i + 1;
+      while (next < total - 1 && skipped.skippedIds.has(STEPS[next]?.id as StepId)) {
+        next += 1;
+      }
+      return Math.min(total - 1, next);
+    });
+  }, [total, skipped.skippedIds]);
 
   const isLast = stepIndex === total - 1;
-  const showFinish = current?.id === 'hands' && completed.has('hands');
+  const lastActionableStep = useMemo(() => {
+    for (let i = total - 2; i >= 0; i -= 1) {
+      const id = STEPS[i]?.id as StepId | undefined;
+      if (id && !skipped.skippedIds.has(id)) return id;
+    }
+    return null;
+  }, [total, skipped.skippedIds]);
+  const showFinish = current?.id === lastActionableStep && completed.has(current.id);
+  const currentSkipReason = current ? skipped.reason.get(current.id) ?? null : null;
 
   const layoutMode = useMemo<'webcam-content' | 'content-only'>(() => {
     if (!current) return 'content-only';
@@ -114,39 +151,14 @@ export const CalibrationWizard = memo(function CalibrationWizard({
         </p>
       </header>
 
-      <ol
-        style={{
-          display: 'flex',
-          listStyle: 'none',
-          padding: 0,
-          margin: 0,
-          gap: 4,
-          flexWrap: 'wrap',
-        }}
-      >
-        {STEPS.map((step, idx) => {
-          const isActive = idx === stepIndex;
-          const isDone = completed.has(step.id);
-          return (
-            <li
-              key={step.id}
-              style={{
-                padding: '4px 10px',
-                borderRadius: 999,
-                fontSize: 11,
-                background: isActive ? '#4f46e5' : isDone ? '#1c3b22' : '#1c1c22',
-                color: isActive ? '#fff' : isDone ? '#7af2c5' : '#6a6a72',
-                border: `1px solid ${isDone && !isActive ? '#1a4d36' : '#2a2a32'}`,
-                cursor: 'pointer',
-              }}
-              onClick={() => setStepIndex(idx)}
-            >
-              {isDone && !isActive ? '✓ ' : ''}
-              {step.title}
-            </li>
-          );
-        })}
-      </ol>
+      <StepBar
+        activeIndex={stepIndex}
+        completed={completed}
+        skipped={skipped}
+        onSelect={setStepIndex}
+      />
+
+      {currentSkipReason && <SkipBanner reason={currentSkipReason} onSkip={goNext} />}
 
       {layoutMode === 'webcam-content' ? (
         <div

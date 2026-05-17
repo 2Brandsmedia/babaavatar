@@ -48,7 +48,7 @@ nsis:
   menuCategory: false
   shortcutName: BabaAvatar
   uninstallDisplayName: 'BabaAvatar - VTuber Tracking'
-  deleteAppDataOnUninstall: true
+  deleteAppDataOnUninstall: false
   runAfterFinish: true
   differentialPackage: true
   installerIcon: resources/installer.ico
