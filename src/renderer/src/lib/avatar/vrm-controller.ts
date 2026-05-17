@@ -26,7 +26,42 @@ export function applyPoseToVrm(
 ): void {
   applyFace(vrm, frame, options.mirror);
   applyPose(vrm, frame);
+  applyHands(vrm, frame);
   applyExpression(vrm, frame);
+}
+
+const FINGER_SLERP = 0.6;
+
+function applyHands(vrm: VRM, frame: PoseFrame): void {
+  const hands = frame.hands;
+  if (!hands) return;
+  if (hands.left) applyHand(vrm, hands.left, 'Left');
+  if (hands.right) applyHand(vrm, hands.right, 'Right');
+}
+
+function applyHand(vrm: VRM, hand: import('@shared/types').HandRig, side: 'Left' | 'Right'): void {
+  const fingers: Array<['Thumb' | 'Index' | 'Middle' | 'Ring' | 'Little', import('@shared/types').HandFingerRig]> = [
+    ['Thumb', hand.thumb],
+    ['Index', hand.index],
+    ['Middle', hand.middle],
+    ['Ring', hand.ring],
+    ['Little', hand.little],
+  ];
+  for (const [name, finger] of fingers) {
+    applyBoneEuler(vrm, `${side}${name}Proximal` as VRMHumanBoneName, finger.proximal);
+    applyBoneEuler(vrm, `${side}${name}Intermediate` as VRMHumanBoneName, finger.intermediate);
+    applyBoneEuler(vrm, `${side}${name}Distal` as VRMHumanBoneName, finger.distal);
+  }
+}
+
+function applyBoneEuler(vrm: VRM, boneName: VRMHumanBoneName, euler: Vec3): void {
+  const humanoid = vrm.humanoid;
+  if (!humanoid) return;
+  const bone = humanoid.getNormalizedBoneNode(boneName);
+  if (!bone) return;
+  REUSE_EULER.set(euler.x, euler.y, euler.z);
+  REUSE_QUAT.setFromEuler(REUSE_EULER);
+  bone.quaternion.slerp(REUSE_QUAT, FINGER_SLERP);
 }
 
 function applyFace(vrm: VRM, frame: PoseFrame, mirror: boolean): void {

@@ -124,6 +124,26 @@ export interface PoseRig {
   };
 }
 
+export interface HandFingerRig {
+  proximal: Vec3;
+  intermediate: Vec3;
+  distal: Vec3;
+}
+
+export interface HandRig {
+  wrist: Vec3;
+  thumb: HandFingerRig;
+  index: HandFingerRig;
+  middle: HandFingerRig;
+  ring: HandFingerRig;
+  little: HandFingerRig;
+}
+
+export interface HandsRig {
+  left: HandRig | null;
+  right: HandRig | null;
+}
+
 export interface FaceMetrics {
   centerX: number;
   centerY: number;
@@ -150,6 +170,7 @@ export interface PoseFrame {
   timestamp: number;
   face: FaceRig | null;
   pose: PoseRig | null;
+  hands: HandsRig | null;
   faceMetrics: FaceMetrics | null;
   irisDistanceCm: number | null;
   blendShapes: BlendShapeMap | null;

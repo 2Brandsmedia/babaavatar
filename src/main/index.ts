@@ -9,6 +9,7 @@ import { setBrowserHost } from './browser-view.js';
 import { registerDownloadHandler } from './download-handler.js';
 import { registerVroidProtocol, handleOpenUrl, focusControlForCallback } from './vroid-api.js';
 import { unregisterAll as unregisterHotkeys } from './hotkeys.js';
+import { initAutoUpdater } from './auto-updater.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,6 +46,9 @@ function bootstrap(): void {
   setBrowserHost({ parentWindow: controlWindow });
   registerIpcHandlers({ controlWindow, outputWindow });
   registerDownloadHandler();
+  if (!process.env['ELECTRON_RENDERER_URL']) {
+    initAutoUpdater({ controlWindow });
+  }
 }
 
 app.whenReady().then(() => {
