@@ -1,6 +1,11 @@
-import { autoUpdater } from 'electron-updater';
 import { BrowserWindow, dialog } from 'electron';
+import { createRequire } from 'node:module';
+import type { AppUpdater } from 'electron-updater';
 import { createLogger } from './logger.js';
+
+const require = createRequire(import.meta.url);
+const electronUpdaterPkg: { autoUpdater: AppUpdater } = require('electron-updater');
+const { autoUpdater } = electronUpdaterPkg;
 
 const log = createLogger('auto-updater');
 
