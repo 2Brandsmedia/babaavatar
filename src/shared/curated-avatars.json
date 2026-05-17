@@ -1,0 +1,55 @@
+{
+  "$comment": "Kuratierte Liste freier VRM-Avatare. Alle Quellen sind ohne Login direkt von GitHub abrufbar.",
+  "avatars": [
+    {
+      "id": "alicia-solid",
+      "displayName": "Alicia Solid",
+      "description": "Das Maskottchen von Niconi Solid (Niconico, Dwango). Sehr permissive Lizenz: frei für Videos, Spiele, Demos, kommerziell und privat.",
+      "author": "Dwango / Niconi Solid",
+      "license": "Niconi-Solid License (sehr permissiv)",
+      "downloadUrl": "https://github.com/vrm-c/UniVRM/raw/master/Tests/Models/Alicia_vrm-0.51/AliciaSolid_vrm-0.51.vrm",
+      "previewUrl": "",
+      "tags": ["sample", "vrm0", "kommerziell"]
+    },
+    {
+      "id": "vroid-sample-f",
+      "displayName": "VRoid Sample F (Konstanze)",
+      "description": "VRoid Studio Sample-Charakter. Frei für Streaming und kommerzielle Nutzung.",
+      "author": "Pixiv / VRoid Studio",
+      "license": "CC0",
+      "downloadUrl": "https://raw.githubusercontent.com/madjin/vrm-samples/main/vroid/female/Vroid_Female_001.vrm",
+      "previewUrl": "",
+      "tags": ["vroid", "sample", "weiblich"]
+    },
+    {
+      "id": "vroid-sample-m",
+      "displayName": "VRoid Sample M",
+      "description": "VRoid Studio Sample-Charakter (männlich). Frei für Streaming.",
+      "author": "Pixiv / VRoid Studio",
+      "license": "CC0",
+      "downloadUrl": "https://raw.githubusercontent.com/madjin/vrm-samples/main/vroid/male/Vroid_Male_001.vrm",
+      "previewUrl": "",
+      "tags": ["vroid", "sample", "männlich"]
+    },
+    {
+      "id": "three-vrm-girl",
+      "displayName": "Three-VRM Beispiel-Avatar",
+      "description": "Offizielles Test-Avatar aus dem pixiv/three-vrm Repository. CC0.",
+      "author": "Pixiv",
+      "license": "CC0",
+      "downloadUrl": "https://raw.githubusercontent.com/pixiv/three-vrm/dev/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm",
+      "previewUrl": "",
+      "tags": ["sample", "vrm1", "cc0"]
+    },
+    {
+      "id": "vrm-girl-sample",
+      "displayName": "VRM Girl Sample",
+      "description": "Klassisches VRM-Demo-Modell, weit verbreitet in VRM-Tutorials.",
+      "author": "Pixiv",
+      "license": "CC0",
+      "downloadUrl": "https://raw.githubusercontent.com/pixiv/three-vrm/dev/packages/three-vrm/examples/models/three-vrm-girl-1.vrm",
+      "previewUrl": "",
+      "tags": ["sample", "demo"]
+    }
+  ]
+}

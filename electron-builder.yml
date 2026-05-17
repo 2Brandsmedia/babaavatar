@@ -1,0 +1,46 @@
+appId: com.2brandsmedia.babaavatar
+productName: BabaAvatar
+copyright: Copyright © 2026 2Brands Media GmbH
+
+directories:
+  output: dist
+  buildResources: resources
+
+files:
+  - out/**/*
+  - resources/**/*
+  - package.json
+  - '!**/node_modules/**/*'
+
+asar: true
+
+mac:
+  category: public.app-category.video
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  icon: resources/icon.png
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  extendInfo:
+    NSCameraUsageDescription: 'BabaAvatar braucht Zugriff auf die Kamera für das Gesichts-Tracking.'
+    NSMicrophoneUsageDescription: 'BabaAvatar braucht Zugriff auf das Mikrofon für Lipsync.'
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.png
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: BabaAvatar
+
+publish: null
