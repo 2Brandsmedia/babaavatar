@@ -51,6 +51,13 @@ nsis:
   deleteAppDataOnUninstall: true
   runAfterFinish: true
   differentialPackage: true
+  installerIcon: resources/installer.ico
+  uninstallerIcon: resources/installer.ico
+  installerHeader: resources/installer-header.bmp
+  installerSidebar: resources/installer-sidebar.bmp
+  uninstallerSidebar: resources/installer-sidebar.bmp
+  installerHeaderIcon: resources/installer.ico
+  include: resources/installer.nsh
   installerLanguages:
     - de_DE
     - en_US
