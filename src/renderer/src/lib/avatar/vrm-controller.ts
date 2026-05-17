@@ -17,6 +17,8 @@ const BLINK_THRESHOLD_OPEN = 0.5;
 
 export interface VrmControllerOptions {
   mirror: boolean;
+  lipsyncFromCamera: boolean;
+  lipsyncFromMic: boolean;
 }
 
 export function applyPoseToVrm(
@@ -24,7 +26,7 @@ export function applyPoseToVrm(
   frame: PoseFrame,
   options: VrmControllerOptions,
 ): void {
-  applyFace(vrm, frame, options.mirror);
+  applyFace(vrm, frame, options);
   applyPose(vrm, frame);
   applyHands(vrm, frame);
   applyExpression(vrm, frame);
@@ -64,9 +66,10 @@ function applyBoneEuler(vrm: VRM, boneName: VRMHumanBoneName, euler: Vec3): void
   bone.quaternion.slerp(REUSE_QUAT, FINGER_SLERP);
 }
 
-function applyFace(vrm: VRM, frame: PoseFrame, mirror: boolean): void {
+function applyFace(vrm: VRM, frame: PoseFrame, options: VrmControllerOptions): void {
   const face = frame.face;
   if (!face) return;
+  const { mirror, lipsyncFromCamera, lipsyncFromMic } = options;
   applyEuler(
     vrm,
     VRMHumanBoneName.Neck,
@@ -86,17 +89,21 @@ function applyFace(vrm: VRM, frame: PoseFrame, mirror: boolean): void {
   manager.setValue('blinkLeft' as VRMExpressionPresetName, leftBlink);
   manager.setValue('blinkRight' as VRMExpressionPresetName, rightBlink);
 
-  const audio = frame.audioPhonemes;
-  const phoneA = Math.max(face.mouth.A, audio?.A ?? 0);
-  const phoneI = Math.max(face.mouth.I, audio?.I ?? 0);
-  const phoneU = Math.max(face.mouth.U, audio?.U ?? 0);
-  const phoneE = Math.max(face.mouth.E, audio?.E ?? 0);
-  const phoneO = Math.max(face.mouth.O, audio?.O ?? 0);
-  manager.setValue('aa' as VRMExpressionPresetName, phoneA);
-  manager.setValue('ih' as VRMExpressionPresetName, phoneI);
-  manager.setValue('ou' as VRMExpressionPresetName, phoneU);
-  manager.setValue('ee' as VRMExpressionPresetName, phoneE);
-  manager.setValue('oh' as VRMExpressionPresetName, phoneO);
+  const camA = lipsyncFromCamera ? face.mouth.A : 0;
+  const camI = lipsyncFromCamera ? face.mouth.I : 0;
+  const camU = lipsyncFromCamera ? face.mouth.U : 0;
+  const camE = lipsyncFromCamera ? face.mouth.E : 0;
+  const camO = lipsyncFromCamera ? face.mouth.O : 0;
+  const micA = lipsyncFromMic ? frame.audioPhonemes?.A ?? 0 : 0;
+  const micI = lipsyncFromMic ? frame.audioPhonemes?.I ?? 0 : 0;
+  const micU = lipsyncFromMic ? frame.audioPhonemes?.U ?? 0 : 0;
+  const micE = lipsyncFromMic ? frame.audioPhonemes?.E ?? 0 : 0;
+  const micO = lipsyncFromMic ? frame.audioPhonemes?.O ?? 0 : 0;
+  manager.setValue('aa' as VRMExpressionPresetName, Math.max(camA, micA));
+  manager.setValue('ih' as VRMExpressionPresetName, Math.max(camI, micI));
+  manager.setValue('ou' as VRMExpressionPresetName, Math.max(camU, micU));
+  manager.setValue('ee' as VRMExpressionPresetName, Math.max(camE, micE));
+  manager.setValue('oh' as VRMExpressionPresetName, Math.max(camO, micO));
 
   manager.setValue('surprised' as VRMExpressionPresetName, face.brow);
 }

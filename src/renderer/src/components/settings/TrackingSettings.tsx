@@ -51,6 +51,20 @@ export const TrackingSettings = memo(function TrackingSettings({
         value={settings.mirrorMode}
         onChange={(v) => void onUpdate('mirrorMode', v)}
       />
+      <div style={{ height: 1, background: '#2a2a32', margin: '6px 0' }} />
+      <p style={{ margin: 0, fontSize: 12, color: '#a0a0a8' }}>
+        Lippen-Tracking-Quellen (beide aktiv = höhere Mimik-Genauigkeit)
+      </p>
+      <ToggleRow
+        label="Lippen via Webcam (Mund-Form)"
+        value={settings.lipsyncFromCamera}
+        onChange={(v) => void onUpdate('lipsyncFromCamera', v)}
+      />
+      <ToggleRow
+        label="Lippen via Mikrofon (Phoneme aus Audio)"
+        value={settings.lipsyncFromMic}
+        onChange={(v) => void onUpdate('lipsyncFromMic', v)}
+      />
     </div>
   );
 });

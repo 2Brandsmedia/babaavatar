@@ -29,6 +29,8 @@ const defaults: AppSettings = {
   autoZoomRefDistance: 60,
   autoZoomMin: 0.5,
   autoZoomMax: 2.5,
+  lipsyncFromCamera: true,
+  lipsyncFromMic: true,
 };
 
 interface StoreSchema extends AppSettings {
@@ -65,6 +67,8 @@ export function getAll(): AppSettings {
     autoZoomRefDistance: raw.autoZoomRefDistance ?? defaults.autoZoomRefDistance,
     autoZoomMin: raw.autoZoomMin ?? defaults.autoZoomMin,
     autoZoomMax: raw.autoZoomMax ?? defaults.autoZoomMax,
+    lipsyncFromCamera: raw.lipsyncFromCamera ?? defaults.lipsyncFromCamera,
+    lipsyncFromMic: raw.lipsyncFromMic ?? defaults.lipsyncFromMic,
   };
 }
 

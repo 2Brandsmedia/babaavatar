@@ -1,4 +1,4 @@
-import { BrowserWindow, shell } from 'electron';
+import { BrowserWindow, dialog, shell, app } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../shared/constants.js';
 import * as settings from './settings.js';
 import { createLogger } from './logger.js';
+import { isAppQuitting, setQuitting } from './index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +58,28 @@ export function createControlWindow(): BrowserWindow {
   window.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  window.on('close', (event) => {
+    if (isAppQuitting()) return;
+    event.preventDefault();
+    void dialog
+      .showMessageBox(window, {
+        type: 'question',
+        buttons: ['Beenden', 'Abbrechen'],
+        defaultId: 1,
+        cancelId: 1,
+        title: 'BabaAvatar beenden?',
+        message: 'BabaAvatar wirklich schließen?',
+        detail: 'Webcam, Mikrofon und Avatar-Rendering werden beendet.',
+        noLink: true,
+      })
+      .then(({ response }) => {
+        if (response === 0) {
+          setQuitting(true);
+          app.quit();
+        }
+      });
   });
 
   attachRendererDiagnostics(window, 'control');
@@ -110,6 +133,11 @@ export function createOutputWindow(): BrowserWindow {
   });
 
   window.on('ready-to-show', () => window.show());
+  window.on('close', (event) => {
+    if (isAppQuitting()) return;
+    event.preventDefault();
+    window.hide();
+  });
   attachRendererDiagnostics(window, 'output');
 
   if (isDev && process.env['ELECTRON_RENDERER_URL']) {

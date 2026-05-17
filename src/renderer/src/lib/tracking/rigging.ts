@@ -19,7 +19,8 @@ import type {
 import { AutoCalibration } from './auto-calibration';
 import { computeIrisDistanceCm } from './iris-distance';
 
-const ARM_VISIBILITY_MIN = 0.75;
+const SHOULDER_ELBOW_MIN = 0.55;
+const WRIST_MIN = 0.45;
 const FACE_BASELINE_WIDTH = 0.22;
 const POSE_VISIBILITY_KEYPOINTS = [11, 12, 13, 14, 15, 16, 23, 24] as const;
 
@@ -33,6 +34,7 @@ export interface RiggingContext {
   video: HTMLVideoElement;
   timestamp: number;
   autoCalibration: AutoCalibration;
+  mirror: boolean;
 }
 
 export function framesToPose(raw: RawTrackingResult, ctx: RiggingContext): PoseFrame {
@@ -82,12 +84,12 @@ export function framesToPose(raw: RawTrackingResult, ctx: RiggingContext): PoseF
     imageHeight: ctx.video.videoHeight || 480,
   });
 
-  const hands = solveHands(raw.hand);
+  const hands = solveHands(raw.hand, ctx.mirror);
 
   return {
     timestamp: ctx.timestamp,
     face: solveFace(raw.face, ctx.video),
-    pose: solvePose(raw.pose, ctx.video),
+    pose: solvePose(raw.pose, ctx.video, ctx.mirror),
     hands,
     faceMetrics: metrics,
     irisDistanceCm,
@@ -98,7 +100,7 @@ export function framesToPose(raw: RawTrackingResult, ctx: RiggingContext): PoseF
   };
 }
 
-function solveHands(handResult: HandLandmarkerResult): HandsRig | null {
+function solveHands(handResult: HandLandmarkerResult, mirror: boolean): HandsRig | null {
   const landmarks = handResult.landmarks ?? [];
   const worldLandmarks = handResult.worldLandmarks ?? [];
   const handednesses = handResult.handednesses ?? [];
@@ -110,12 +112,17 @@ function solveHands(handResult: HandLandmarkerResult): HandsRig | null {
   for (let i = 0; i < landmarks.length; i += 1) {
     const lm3d = worldLandmarks[i] ?? landmarks[i];
     if (!lm3d) continue;
-    const handedness = handednesses[i]?.[0]?.categoryName === 'Left' ? 'Left' : 'Right';
+    const cameraSide = handednesses[i]?.[0]?.categoryName === 'Left' ? 'Left' : 'Right';
+    const avatarSide: 'Left' | 'Right' = mirror
+      ? cameraSide === 'Left'
+        ? 'Right'
+        : 'Left'
+      : cameraSide;
     try {
-      const solved = Kalidokit.Hand.solve(lm3d, handedness) as Record<string, { x: number; y: number; z: number }> | undefined;
+      const solved = Kalidokit.Hand.solve(lm3d, avatarSide) as Record<string, { x: number; y: number; z: number }> | undefined;
       if (!solved) continue;
-      const rig = buildHandRig(solved, handedness);
-      if (handedness === 'Left') left = rig;
+      const rig = buildHandRig(solved, avatarSide);
+      if (avatarSide === 'Left') left = rig;
       else right = rig;
     } catch (err) {
       console.warn('Hand-Solver fehlgeschlagen', err);
@@ -246,7 +253,7 @@ function solveFace(result: FaceLandmarkerResult, video: HTMLVideoElement): FaceR
   }
 }
 
-function solvePose(result: PoseLandmarkerResult, video: HTMLVideoElement): PoseRig | null {
+function solvePose(result: PoseLandmarkerResult, video: HTMLVideoElement, mirror: boolean): PoseRig | null {
   const landmarks2d = result.landmarks?.[0];
   const landmarks3d = result.worldLandmarks?.[0];
   if (!landmarks2d || !landmarks3d) return null;
@@ -258,14 +265,19 @@ function solvePose(result: PoseLandmarkerResult, video: HTMLVideoElement): PoseR
     });
     if (!solved) return null;
 
-    const armsVisible = computeArmVisibility(landmarks3d);
+    const armsVisible = computeArmVisibility(landmarks3d, mirror);
+
+    const leftUpper = mirror ? solved.RightUpperArm : solved.LeftUpperArm;
+    const leftLower = mirror ? solved.RightLowerArm : solved.LeftLowerArm;
+    const rightUpper = mirror ? solved.LeftUpperArm : solved.RightUpperArm;
+    const rightLower = mirror ? solved.LeftLowerArm : solved.RightLowerArm;
 
     return {
       spine: toVec(solved.Spine),
-      leftUpperArm: toVec(solved.LeftUpperArm),
-      leftLowerArm: toVec(solved.LeftLowerArm),
-      rightUpperArm: toVec(solved.RightUpperArm),
-      rightLowerArm: toVec(solved.RightLowerArm),
+      leftUpperArm: toVec(leftUpper),
+      leftLowerArm: toVec(leftLower),
+      rightUpperArm: toVec(rightUpper),
+      rightLowerArm: toVec(rightLower),
       hipsPosition: toVec(solved.Hips.position),
       hipsWorldPosition: toVec(solved.Hips.worldPosition ?? { x: 0, y: 0, z: 0 }),
       hipsRotation: toVec(solved.Hips.rotation ?? { x: 0, y: 0, z: 0 }),
@@ -277,25 +289,34 @@ function solvePose(result: PoseLandmarkerResult, video: HTMLVideoElement): PoseR
   }
 }
 
-function computeArmVisibility(landmarks: ReadonlyArray<{ visibility?: number }>): {
-  left: boolean;
-  right: boolean;
-} {
-  const leftShoulder = landmarks[11]?.visibility ?? 0;
-  const leftElbow = landmarks[13]?.visibility ?? 0;
-  const leftWrist = landmarks[15]?.visibility ?? 0;
-  const rightShoulder = landmarks[12]?.visibility ?? 0;
-  const rightElbow = landmarks[14]?.visibility ?? 0;
-  const rightWrist = landmarks[16]?.visibility ?? 0;
+function computeArmVisibility(
+  landmarks: ReadonlyArray<{ visibility?: number }>,
+  mirror: boolean,
+): { left: boolean; right: boolean } {
+  // MediaPipe-Indices sind kamera-zentriert: 11/13/15 = "linke" Schulter/Ellbogen/Hand
+  // im Webcam-Bild (anatomisch rechte Seite des Users). Bei Mirror=true
+  // tauschen wir die Seiten, damit "Avatar-Links" zu "User-Bild-Links" wird.
+  const camLeftShoulder = landmarks[11]?.visibility ?? 0;
+  const camLeftElbow = landmarks[13]?.visibility ?? 0;
+  const camLeftWrist = landmarks[15]?.visibility ?? 0;
+  const camRightShoulder = landmarks[12]?.visibility ?? 0;
+  const camRightElbow = landmarks[14]?.visibility ?? 0;
+  const camRightWrist = landmarks[16]?.visibility ?? 0;
+
+  const leftShoulder = mirror ? camRightShoulder : camLeftShoulder;
+  const leftElbow = mirror ? camRightElbow : camLeftElbow;
+  const leftWrist = mirror ? camRightWrist : camLeftWrist;
+  const rightShoulder = mirror ? camLeftShoulder : camRightShoulder;
+  const rightElbow = mirror ? camLeftElbow : camRightElbow;
+  const rightWrist = mirror ? camLeftWrist : camRightWrist;
+
   return {
     left:
-      leftShoulder >= ARM_VISIBILITY_MIN &&
-      leftElbow >= ARM_VISIBILITY_MIN &&
-      leftWrist >= ARM_VISIBILITY_MIN,
+      (leftShoulder >= SHOULDER_ELBOW_MIN && leftElbow >= SHOULDER_ELBOW_MIN) ||
+      leftWrist >= WRIST_MIN,
     right:
-      rightShoulder >= ARM_VISIBILITY_MIN &&
-      rightElbow >= ARM_VISIBILITY_MIN &&
-      rightWrist >= ARM_VISIBILITY_MIN,
+      (rightShoulder >= SHOULDER_ELBOW_MIN && rightElbow >= SHOULDER_ELBOW_MIN) ||
+      rightWrist >= WRIST_MIN,
   };
 }
 

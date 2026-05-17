@@ -155,7 +155,11 @@ export const AvatarStage = memo(function AvatarStage({
         const now = performance.now();
         const poseFresh = pose && now - pose.timestamp < 2000;
         if (poseFresh && pose) {
-          applyPoseToVrm(loaded.vrm, pose, { mirror: mirrorRef.current });
+          applyPoseToVrm(loaded.vrm, pose, {
+            mirror: mirrorRef.current,
+            lipsyncFromCamera: settings?.lipsyncFromCamera ?? true,
+            lipsyncFromMic: settings?.lipsyncFromMic ?? true,
+          });
           applyAvatarMicroFollow(loaded.scene, pose);
         } else {
           applyIdleAnimation(loaded.vrm, idleState, delta);

@@ -1,6 +1,9 @@
 import { memo } from 'react';
 import type { AvatarProfile } from '@shared/types';
 import { CalibrationCapture } from './CalibrationCapture';
+import { CameraStep } from './CameraStep';
+import { MicrophoneStep } from './MicrophoneStep';
+import { HandsStep } from './HandsStep';
 import type { StepId } from './steps';
 
 interface CalibrationStepViewProps {
@@ -32,10 +35,8 @@ export const CalibrationStepView = memo(function CalibrationStepView({
           Brauen-Bereiche), damit dein Avatar dich präzise abbildet. Es dauert etwa 90 Sekunden.
         </p>
       )}
-      {stepId === 'camera' && <p>Wechsle ins "Live-Tracking"-Panel und wähle deine Webcam aus.</p>}
-      {stepId === 'microphone' && (
-        <p>Wähle dein Mikrofon. Lipsync wird über die Stimme zusätzlich präzisiert.</p>
-      )}
+      {stepId === 'camera' && <CameraStep />}
+      {stepId === 'microphone' && <MicrophoneStep />}
       {stepId === 'avatar' && (
         <p>Stelle sicher, dass dein Wunsch-Avatar in der Bibliothek aktiv ist.</p>
       )}
@@ -94,12 +95,7 @@ export const CalibrationStepView = memo(function CalibrationStepView({
           mode="max"
         />
       )}
-      {stepId === 'hands' && (
-        <p>
-          Zeige beide Hände abwechselnd vor die Kamera, um Hand-Tracking zu prüfen. Im Overlay
-          erscheint "Linke Hand: erkannt".
-        </p>
-      )}
+      {stepId === 'hands' && <HandsStep />}
       {stepId === 'done' && (
         <p>
           Kalibrierung abgeschlossen. Du kannst sie jederzeit erneut durchlaufen. Profile sind pro

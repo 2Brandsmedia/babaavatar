@@ -37,6 +37,15 @@ app.on('open-url', (event, url) => {
 
 let controlWindow: BrowserWindow | null = null;
 let outputWindow: BrowserWindow | null = null;
+let isQuitting = false;
+
+export function isAppQuitting(): boolean {
+  return isQuitting;
+}
+
+export function setQuitting(value: boolean): void {
+  isQuitting = value;
+}
 
 function bootstrap(): void {
   log.info('Starte BabaAvatar', { platform: process.platform, version: app.getVersion() });
@@ -74,13 +83,19 @@ app.on('second-instance', (_event, argv) => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  app.quit();
 });
 
 app.on('before-quit', () => {
+  isQuitting = true;
   log.info('Beende BabaAvatar');
   unregisterHotkeys();
+  if (outputWindow && !outputWindow.isDestroyed()) {
+    outputWindow.removeAllListeners('close');
+    outputWindow.destroy();
+  }
+  if (controlWindow && !controlWindow.isDestroyed()) {
+    controlWindow.removeAllListeners('close');
+  }
   closeLogger();
 });

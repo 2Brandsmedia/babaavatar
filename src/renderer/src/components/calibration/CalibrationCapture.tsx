@@ -34,9 +34,12 @@ export const CalibrationCapture = memo(function CalibrationCapture({
   const storedRaw = calibration ? calibration[field] : null;
   const stored = typeof storedRaw === 'number' ? storedRaw : null;
 
+  const [overrideValue, setOverrideValue] = useState<number | null>(null);
+
   const handleRecord = useCallback(() => {
     if (recording) return;
     setRecording(true);
+    setOverrideValue(null);
     samplesRef.current = [];
     const start = performance.now();
     const interval = window.setInterval(() => {
@@ -49,10 +52,17 @@ export const CalibrationCapture = memo(function CalibrationCapture({
         const result = aggregate(samplesRef.current, mode);
         setRecording(false);
         setRecordProgress(0);
-        if (result !== null) onApply(result);
+        if (result !== null) {
+          setOverrideValue(result);
+          onApply(result);
+        }
       }
     }, 50);
   }, [mode, onApply, recording, source]);
+
+  useEffect(() => {
+    if (typeof stored === 'number') setOverrideValue(stored);
+  }, [stored]);
 
   useEffect(() => () => undefined, []);
 
@@ -114,11 +124,50 @@ export const CalibrationCapture = memo(function CalibrationCapture({
         <button
           type="button"
           disabled={saving || recording}
-          onClick={() => onApply(0)}
+          onClick={() => {
+            setOverrideValue(0);
+            onApply(0);
+          }}
         >
           Zurücksetzen
         </button>
       </div>
+      {overrideValue !== null && !recording && (
+        <div
+          style={{
+            background: '#1c1c22',
+            border: '1px solid #2a2a32',
+            padding: 10,
+            borderRadius: 8,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+            <span>Wert manuell anpassen</span>
+            <span style={{ color: '#7aa7ff', fontFamily: 'ui-monospace, monospace' }}>
+              {overrideValue.toFixed(3)}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={overrideValue}
+            disabled={saving}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setOverrideValue(v);
+              onApply(v);
+            }}
+          />
+          <small style={{ color: '#a0a0a8' }}>
+            Wenn der Auto-Messwert nicht passt, hier nachjustieren.
+          </small>
+        </div>
+      )}
       {!trackingReady && (
         <small style={{ color: '#ff9670' }}>
           Webcam in der Statusleiste oben einschalten.

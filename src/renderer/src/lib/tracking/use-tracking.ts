@@ -6,6 +6,7 @@ import { PoseSmoother } from './pose-smoother';
 import { AutoCalibration } from './auto-calibration';
 import { HandSmoother } from './hand-smoother';
 import { useTrackingStore, type RawLandmark } from '@renderer/store/tracking';
+import { useSettingsStore } from '@renderer/store/settings';
 
 export interface TrackingMetrics {
   fps: number;
@@ -30,6 +31,11 @@ const TARGET_FRAME_INTERVAL_MS = 1000 / 60;
 
 export function useTracking(options: UseTrackingOptions): UseTrackingResult {
   const { video, enabled } = options;
+  const mirrorMode = useSettingsStore((s) => s.settings?.mirrorMode ?? true);
+  const mirrorRef = useRef(mirrorMode);
+  useEffect(() => {
+    mirrorRef.current = mirrorMode;
+  }, [mirrorMode]);
   const [pose, setPose] = useState<PoseFrame | null>(null);
   const [metrics, setMetrics] = useState<TrackingMetrics>({
     fps: 0,
@@ -84,7 +90,12 @@ export function useTracking(options: UseTrackingOptions): UseTrackingResult {
             const poseResult = engine.pose.detectForVideo(video, now);
             const handResult = engine.hand.detectForVideo(video, now);
             const raw: RawTrackingResult = { face: faceResult, pose: poseResult, hand: handResult };
-            const rawFrame = framesToPose(raw, { video, timestamp: now, autoCalibration });
+            const rawFrame = framesToPose(raw, {
+              video,
+              timestamp: now,
+              autoCalibration,
+              mirror: mirrorRef.current,
+            });
             const frame = smoother.smooth(rawFrame);
             setPose(frame);
             publishRawLandmarks(faceResult, poseResult, handResult, handSmoother, now);

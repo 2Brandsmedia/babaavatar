@@ -84,6 +84,8 @@ export interface AppSettings {
   autoZoomRefDistance: number;
   autoZoomMin: number;
   autoZoomMax: number;
+  lipsyncFromCamera: boolean;
+  lipsyncFromMic: boolean;
 }
 
 export interface Vec3 {
