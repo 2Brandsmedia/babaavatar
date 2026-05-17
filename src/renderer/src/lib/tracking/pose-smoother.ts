@@ -1,4 +1,4 @@
-import type { HandRig, HandsRig, PoseFrame, Vec3 } from '@shared/types';
+import type { ArmWorldPoints, HandRig, HandsRig, PoseFrame, Vec3 } from '@shared/types';
 import { OneEuroFilter } from './smoother';
 
 export class PoseSmoother {
@@ -21,6 +21,8 @@ export class PoseSmoother {
             brow: this.filterScalar('brow', frame.face.brow, t),
             pupilX: this.filterScalar('pupilX', frame.face.pupilX, t),
             pupilY: this.filterScalar('pupilY', frame.face.pupilY, t),
+            gazeX: this.filterScalar('gazeX', frame.face.gazeX, t),
+            gazeY: this.filterScalar('gazeY', frame.face.gazeY, t),
             mouth: {
               A: this.filterScalar('mA', frame.face.mouth.A, t),
               I: this.filterScalar('mI', frame.face.mouth.I, t),
@@ -42,6 +44,8 @@ export class PoseSmoother {
             hipsWorldPosition: this.smoothVec('hipsWorldPos', frame.pose.hipsWorldPosition, t),
             hipsRotation: this.smoothVec('hipsRot', frame.pose.hipsRotation, t),
             armsVisible: frame.pose.armsVisible,
+            leftArmWorld: this.smoothArmWorld('lArmW', frame.pose.leftArmWorld, t),
+            rightArmWorld: this.smoothArmWorld('rArmW', frame.pose.rightArmWorld, t),
           }
         : null,
       faceMetrics: frame.faceMetrics
@@ -62,6 +66,20 @@ export class PoseSmoother {
       quality: frame.quality,
       audioPhonemes: frame.audioPhonemes,
       expression: frame.expression,
+    };
+  }
+
+  private smoothArmWorld(
+    prefix: string,
+    arm: ArmWorldPoints | null,
+    t: number,
+  ): ArmWorldPoints | null {
+    if (!arm) return null;
+    return {
+      shoulder: this.smoothVec(`${prefix}S`, arm.shoulder, t),
+      elbow: this.smoothVec(`${prefix}E`, arm.elbow, t),
+      wrist: this.smoothVec(`${prefix}W`, arm.wrist, t),
+      visible: arm.visible,
     };
   }
 

@@ -1,13 +1,12 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import type { AvatarProfile, PoseFrame } from '@shared/types';
 import { useTrackingStore } from '@renderer/store/tracking';
 import { LiveValueBar } from './LiveValueBar';
 
-const RECORD_SECONDS = 3;
+const RECORD_SECONDS = 5;
 
 interface CalibrationCaptureProps {
   label: string;
-  field: keyof AvatarProfile['calibration'];
   calibration: AvatarProfile['calibration'] | undefined;
   saving: boolean;
   onApply: (value: number | number[]) => void;
@@ -17,8 +16,6 @@ interface CalibrationCaptureProps {
 
 export const CalibrationCapture = memo(function CalibrationCapture({
   label,
-  field,
-  calibration,
   saving,
   onApply,
   source,
@@ -28,18 +25,15 @@ export const CalibrationCapture = memo(function CalibrationCapture({
   const trackingReady = useTrackingStore((state) => state.trackingReady);
   const [recording, setRecording] = useState(false);
   const [recordProgress, setRecordProgress] = useState(0);
+  const [captured, setCaptured] = useState<number | null>(null);
   const samplesRef = useRef<number[]>([]);
 
   const liveValue = readScalar(pose, source);
-  const storedRaw = calibration ? calibration[field] : null;
-  const stored = typeof storedRaw === 'number' ? storedRaw : null;
-
-  const [overrideValue, setOverrideValue] = useState<number | null>(null);
 
   const handleRecord = useCallback(() => {
     if (recording) return;
     setRecording(true);
-    setOverrideValue(null);
+    setCaptured(null);
     samplesRef.current = [];
     const start = performance.now();
     const interval = window.setInterval(() => {
@@ -53,35 +47,31 @@ export const CalibrationCapture = memo(function CalibrationCapture({
         setRecording(false);
         setRecordProgress(0);
         if (result !== null) {
-          setOverrideValue(result);
+          setCaptured(result);
           onApply(result);
         }
       }
-    }, 50);
+    }, 33);
   }, [mode, onApply, recording, source]);
-
-  useEffect(() => {
-    if (typeof stored === 'number') setOverrideValue(stored);
-  }, [stored]);
-
-  useEffect(() => () => undefined, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <p style={{ margin: 0 }}>{label}</p>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>{label}</p>
+
       <LiveValueBar
         label="Live-Wert (mach die Pose jetzt)"
         value={liveValue ?? 0}
-        reference={stored}
+        reference={captured}
       />
-      {recording && (
+
+      {recording ? (
         <div
           style={{
             background: '#1c1c22',
             border: '1px solid #4f46e5',
-            padding: 10,
+            padding: 12,
             borderRadius: 8,
-            fontSize: 12,
+            fontSize: 13,
             color: '#a0bcff',
           }}
         >
@@ -100,74 +90,58 @@ export const CalibrationCapture = memo(function CalibrationCapture({
                 width: `${recordProgress * 100}%`,
                 background: '#7aa7ff',
                 height: '100%',
+                transition: 'width 50ms linear',
               }}
             />
           </div>
         </div>
-      )}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      ) : captured !== null ? (
+        <div
+          style={{
+            background: '#0d2a1e',
+            border: '1px solid #1a4d36',
+            padding: 12,
+            borderRadius: 8,
+            fontSize: 13,
+            color: '#7af2c5',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <span>
+            ✓ Erfasst: <code style={{ fontFamily: 'ui-monospace, monospace' }}>{captured.toFixed(3)}</code>
+          </span>
+          <button
+            type="button"
+            onClick={handleRecord}
+            disabled={saving || !trackingReady}
+            style={{
+              padding: '4px 10px',
+              background: 'transparent',
+              border: '1px solid #1a4d36',
+              color: '#7af2c5',
+              borderRadius: 6,
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            Erneut aufnehmen
+          </button>
+        </div>
+      ) : (
         <button
           type="button"
           className="primary"
-          disabled={saving || !trackingReady || recording}
+          disabled={saving || !trackingReady}
           onClick={handleRecord}
+          style={{ alignSelf: 'flex-start' }}
         >
           {RECORD_SECONDS}-Sek-Aufnahme starten
         </button>
-        <button
-          type="button"
-          disabled={saving || recording || liveValue === null}
-          onClick={() => liveValue !== null && onApply(liveValue)}
-        >
-          Aktuellen Wert übernehmen
-        </button>
-        <button
-          type="button"
-          disabled={saving || recording}
-          onClick={() => {
-            setOverrideValue(0);
-            onApply(0);
-          }}
-        >
-          Zurücksetzen
-        </button>
-      </div>
-      {overrideValue !== null && !recording && (
-        <div
-          style={{
-            background: '#1c1c22',
-            border: '1px solid #2a2a32',
-            padding: 10,
-            borderRadius: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-            <span>Wert manuell anpassen</span>
-            <span style={{ color: '#7aa7ff', fontFamily: 'ui-monospace, monospace' }}>
-              {overrideValue.toFixed(3)}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={overrideValue}
-            disabled={saving}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              setOverrideValue(v);
-              onApply(v);
-            }}
-          />
-          <small style={{ color: '#a0a0a8' }}>
-            Wenn der Auto-Messwert nicht passt, hier nachjustieren.
-          </small>
-        </div>
       )}
+
       {!trackingReady && (
         <small style={{ color: '#ff9670' }}>
           Webcam in der Statusleiste oben einschalten.

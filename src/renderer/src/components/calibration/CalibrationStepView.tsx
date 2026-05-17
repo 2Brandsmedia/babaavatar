@@ -1,9 +1,10 @@
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import type { AvatarProfile } from '@shared/types';
 import { CalibrationCapture } from './CalibrationCapture';
 import { CameraStep } from './CameraStep';
 import { MicrophoneStep } from './MicrophoneStep';
 import { HandsStep } from './HandsStep';
+import { AvatarPickerStep } from './AvatarPickerStep';
 import type { StepId } from './steps';
 
 interface CalibrationStepViewProps {
@@ -11,6 +12,7 @@ interface CalibrationStepViewProps {
   profile: AvatarProfile | null;
   onApply: (patch: Partial<AvatarProfile['calibration']>) => void;
   saving: boolean;
+  onComplete: () => void;
 }
 
 export const CalibrationStepView = memo(function CalibrationStepView({
@@ -18,35 +20,29 @@ export const CalibrationStepView = memo(function CalibrationStepView({
   profile,
   onApply,
   saving,
+  onComplete,
 }: CalibrationStepViewProps): JSX.Element {
   const calibration = profile?.calibration;
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        flex: 1,
-      }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
       {stepId === 'welcome' && (
-        <p>
+        <p style={{ margin: 0 }}>
           Diese Kalibrierung erfasst deine persönlichen Baselines (neutrale Pose, Mund-, Augen-,
           Brauen-Bereiche), damit dein Avatar dich präzise abbildet. Es dauert etwa 90 Sekunden.
         </p>
       )}
-      {stepId === 'camera' && <CameraStep />}
-      {stepId === 'microphone' && <MicrophoneStep />}
-      {stepId === 'avatar' && (
-        <p>Stelle sicher, dass dein Wunsch-Avatar in der Bibliothek aktiv ist.</p>
-      )}
+      {stepId === 'camera' && <CameraStep onComplete={onComplete} />}
+      {stepId === 'microphone' && <MicrophoneStep onComplete={onComplete} />}
+      {stepId === 'avatar' && <AvatarPickerStep onPicked={onComplete} />}
       {stepId === 'neutral' && (
         <CalibrationCapture
           label="Sitz entspannt da, schau gerade in die Kamera. Aufnahme erfasst deine neutrale Augen-Öffnung als Referenzwert."
-          field="eyeOpenMax"
           calibration={calibration}
           saving={saving}
-          onApply={(value) => onApply({ eyeOpenMax: value as number })}
+          onApply={(value) => {
+            onApply({ eyeOpenMax: value as number });
+            onComplete();
+          }}
           source="eye-open"
           mode="average"
         />
@@ -54,10 +50,12 @@ export const CalibrationStepView = memo(function CalibrationStepView({
       {stepId === 'mouth' && (
         <CalibrationCapture
           label="Öffne den Mund WEIT auf und halte. Aufnahme erfasst dein Maximum."
-          field="mouthOpenMax"
           calibration={calibration}
           saving={saving}
-          onApply={(value) => onApply({ mouthOpenMax: value as number })}
+          onApply={(value) => {
+            onApply({ mouthOpenMax: value as number });
+            onComplete();
+          }}
           source="mouth-open"
           mode="max"
         />
@@ -65,10 +63,12 @@ export const CalibrationStepView = memo(function CalibrationStepView({
       {stepId === 'eyes' && (
         <CalibrationCapture
           label="Halte die Augen WEIT GEÖFFNET. Aufnahme erfasst dein Maximum."
-          field="eyeOpenMax"
           calibration={calibration}
           saving={saving}
-          onApply={(value) => onApply({ eyeOpenMax: value as number, eyeClosedMin: 0 })}
+          onApply={(value) => {
+            onApply({ eyeOpenMax: value as number, eyeClosedMin: 0 });
+            onComplete();
+          }}
           source="eye-open"
           mode="max"
         />
@@ -76,10 +76,12 @@ export const CalibrationStepView = memo(function CalibrationStepView({
       {stepId === 'brows' && (
         <CalibrationCapture
           label="Ziehe die Augenbrauen so HOCH wie möglich. Halte für die Aufnahme."
-          field="browUpMax"
           calibration={calibration}
           saving={saving}
-          onApply={(value) => onApply({ browUpMax: value as number })}
+          onApply={(value) => {
+            onApply({ browUpMax: value as number });
+            onComplete();
+          }}
           source="brow-up"
           mode="max"
         />
@@ -87,21 +89,51 @@ export const CalibrationStepView = memo(function CalibrationStepView({
       {stepId === 'smile' && (
         <CalibrationCapture
           label="Lächle DEUTLICH und halte den Ausdruck. Aufnahme erfasst dein Maximum."
-          field="smileMax"
           calibration={calibration}
           saving={saving}
-          onApply={(value) => onApply({ smileMax: value as number })}
+          onApply={(value) => {
+            onApply({ smileMax: value as number });
+            onComplete();
+          }}
           source="smile"
           mode="max"
         />
       )}
-      {stepId === 'hands' && <HandsStep />}
-      {stepId === 'done' && (
-        <p>
-          Kalibrierung abgeschlossen. Du kannst sie jederzeit erneut durchlaufen. Profile sind pro
-          Avatar gespeichert.
-        </p>
-      )}
+      {stepId === 'hands' && <HandsStep onConfirmed={onComplete} />}
+      {stepId === 'done' && <DoneStep onComplete={onComplete} />}
+    </div>
+  );
+});
+
+interface DoneStepProps {
+  onComplete: () => void;
+}
+
+const DoneStep = memo(function DoneStep({ onComplete }: DoneStepProps): JSX.Element {
+  useEffect(() => {
+    onComplete();
+  }, [onComplete]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div
+        style={{
+          background: '#0d2a1e',
+          border: '1px solid #1a4d36',
+          padding: 14,
+          borderRadius: 8,
+          color: '#7af2c5',
+          fontSize: 14,
+          fontWeight: 600,
+        }}
+      >
+        ✓ Kalibrierung abgeschlossen
+      </div>
+      <p style={{ margin: 0, color: '#a0a0a8', fontSize: 13, lineHeight: 1.5 }}>
+        Profile ist gespeichert. Du kannst jederzeit zu einzelnen Schritten zurückkehren und sie
+        erneut durchlaufen. Wenn ein Schritt im Header noch grau ist, kannst du ihn anklicken um
+        ihn nachzuholen.
+      </p>
     </div>
   );
 });

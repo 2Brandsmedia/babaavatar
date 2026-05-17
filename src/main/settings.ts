@@ -25,12 +25,15 @@ const defaults: AppSettings = {
   cameraZoom: 1.0,
   cameraOffsetX: 0,
   cameraOffsetY: 0,
-  autoZoomEnabled: false,
+  autoZoomEnabled: true,
   autoZoomRefDistance: 60,
-  autoZoomMin: 0.5,
-  autoZoomMax: 2.5,
+  autoZoomMin: 0.6,
+  autoZoomMax: 2.2,
   lipsyncFromCamera: true,
   lipsyncFromMic: true,
+  trackingEngine: 'mediapipe',
+  showFaceMesh: true,
+  armIkEnabled: true,
 };
 
 interface StoreSchema extends AppSettings {
@@ -69,6 +72,9 @@ export function getAll(): AppSettings {
     autoZoomMax: raw.autoZoomMax ?? defaults.autoZoomMax,
     lipsyncFromCamera: raw.lipsyncFromCamera ?? defaults.lipsyncFromCamera,
     lipsyncFromMic: raw.lipsyncFromMic ?? defaults.lipsyncFromMic,
+    trackingEngine: raw.trackingEngine ?? defaults.trackingEngine,
+    showFaceMesh: raw.showFaceMesh ?? defaults.showFaceMesh,
+    armIkEnabled: raw.armIkEnabled ?? defaults.armIkEnabled,
   };
 }
 

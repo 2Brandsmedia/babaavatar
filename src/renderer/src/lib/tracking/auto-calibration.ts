@@ -90,11 +90,11 @@ export class AutoCalibration {
     const posVar = (this.centerX.variance() + this.centerY.variance()) / 2;
     const stability = bootstrapped ? clamp01(1 - posVar / STABLE_VARIANCE_THRESHOLD) : 0;
 
-    const widthScore = clamp01((this.width.median() - 0.05) / 0.25);
+    const widthScore = clamp01((this.width.median() - 0.03) / 0.18);
     const visScore = clamp01(input.poseVisibilityAverage);
-    const handScore = input.handCount > 0 ? 1 : 0.5;
+    const handScore = input.handCount > 0 ? 1 : 0.85;
     const qualityScore = bootstrapped
-      ? 0.45 * widthScore + 0.3 * visScore + 0.15 * stability + 0.1 * handScore
+      ? 0.4 * widthScore + 0.35 * visScore + 0.15 * stability + 0.1 * handScore
       : 0;
 
     return {

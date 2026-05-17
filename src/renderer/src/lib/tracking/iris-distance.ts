@@ -1,14 +1,12 @@
 import type { NormalizedLandmark } from '@mediapipe/tasks-vision';
 
-const IRIS_DIAMETER_MM = 11.7;
+const FACE_HEIGHT_MM = 220;
 const DEFAULT_FOV_DEG = 60;
 const MIN_DISTANCE_CM = 20;
 const MAX_DISTANCE_CM = 200;
 
-const LEFT_IRIS_RIGHT_EDGE = 469;
-const LEFT_IRIS_LEFT_EDGE = 471;
-const RIGHT_IRIS_RIGHT_EDGE = 474;
-const RIGHT_IRIS_LEFT_EDGE = 476;
+const FOREHEAD = 10;
+const CHIN = 152;
 
 export interface IrisDistanceOptions {
   imageWidth: number;
@@ -22,46 +20,23 @@ export function computeIrisDistanceCm(
 ): number | null {
   if (!landmarks || landmarks.length < 478) return null;
   const fovDeg = options.horizontalFovDeg ?? DEFAULT_FOV_DEG;
-  const focalPx = options.imageWidth / 2 / Math.tan((fovDeg * Math.PI) / 360);
+  const aspect = options.imageWidth / Math.max(1, options.imageHeight);
+  const vFovRad = 2 * Math.atan(Math.tan((fovDeg * Math.PI) / 360) / aspect);
+  const focalPxV = options.imageHeight / 2 / Math.tan(vFovRad / 2);
 
-  const leftDiameter = irisDiameterPx(landmarks, LEFT_IRIS_LEFT_EDGE, LEFT_IRIS_RIGHT_EDGE, options);
-  const rightDiameter = irisDiameterPx(
-    landmarks,
-    RIGHT_IRIS_LEFT_EDGE,
-    RIGHT_IRIS_RIGHT_EDGE,
-    options,
-  );
+  const forehead = landmarks[FOREHEAD];
+  const chin = landmarks[CHIN];
+  if (!forehead || !chin) return null;
 
-  let diameter: number;
-  if (leftDiameter !== null && rightDiameter !== null) {
-    diameter = (leftDiameter + rightDiameter) / 2;
-  } else if (leftDiameter !== null) {
-    diameter = leftDiameter;
-  } else if (rightDiameter !== null) {
-    diameter = rightDiameter;
-  } else {
-    return null;
-  }
+  const dy = (chin.y - forehead.y) * options.imageHeight;
+  const dx = (chin.x - forehead.x) * options.imageWidth;
+  const faceHeightPx = Math.sqrt(dx * dx + dy * dy);
+  if (faceHeightPx <= 0) return null;
 
-  if (diameter <= 0) return null;
-  const distanceMm = (IRIS_DIAMETER_MM * focalPx) / diameter;
+  const distanceMm = (FACE_HEIGHT_MM * focalPxV) / faceHeightPx;
   const distanceCm = distanceMm / 10;
   if (distanceCm < MIN_DISTANCE_CM || distanceCm > MAX_DISTANCE_CM) return null;
   return distanceCm;
-}
-
-function irisDiameterPx(
-  landmarks: NormalizedLandmark[],
-  leftIdx: number,
-  rightIdx: number,
-  options: IrisDistanceOptions,
-): number | null {
-  const a = landmarks[leftIdx];
-  const b = landmarks[rightIdx];
-  if (!a || !b) return null;
-  const dx = (a.x - b.x) * options.imageWidth;
-  const dy = (a.y - b.y) * options.imageHeight;
-  return Math.sqrt(dx * dx + dy * dy);
 }
 
 export interface KalmanState {
@@ -86,9 +61,9 @@ export function createKalmanState(): KalmanState {
   };
 }
 
-const PROCESS_NOISE_X = 0.0008;
-const PROCESS_NOISE_V = 0.005;
-const MEASUREMENT_NOISE = 0.02;
+const PROCESS_NOISE_X = 0.00008;
+const PROCESS_NOISE_V = 0.0008;
+const MEASUREMENT_NOISE = 0.08;
 
 export function kalmanStep(state: KalmanState, measurement: number, dt: number): void {
   if (!state.initialized) {

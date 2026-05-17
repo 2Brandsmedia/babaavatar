@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef } from 'react';
 import { useTrackingStore, type RawLandmark } from '@renderer/store/tracking';
+import { FaceLandmarker } from '@mediapipe/tasks-vision';
 import {
   POSE_CONNECTIONS,
   HAND_CONNECTIONS,
@@ -13,8 +14,10 @@ import {
   FACE_LEFT_IRIS,
   FACE_RIGHT_IRIS,
   FACE_NOSE_BRIDGE,
-  FACE_TESSELATION_EDGES,
 } from './skeleton-connections';
+
+const FULL_TESSELATION_EDGES: ReadonlyArray<readonly [number, number]> =
+  FaceLandmarker.FACE_LANDMARKS_TESSELATION.map((c) => [c.start, c.end] as const);
 
 interface SkeletonOverlayProps {
   mirror: boolean;
@@ -120,10 +123,10 @@ function drawFace(
   height: number,
   mirror: boolean,
 ): void {
-  ctx.lineWidth = 0.9;
-  ctx.strokeStyle = 'rgba(122, 167, 255, 0.45)';
+  ctx.lineWidth = 0.45;
+  ctx.strokeStyle = 'rgba(122, 167, 255, 0.32)';
   ctx.beginPath();
-  for (const [a, b] of FACE_TESSELATION_EDGES) {
+  for (const [a, b] of FULL_TESSELATION_EDGES) {
     const la = landmarks[a];
     const lb = landmarks[b];
     if (!la || !lb) continue;

@@ -6,6 +6,7 @@ import type {
   Classifications,
 } from '@mediapipe/tasks-vision';
 import type {
+  ArmWorldPoints,
   BlendShapeMap,
   FaceMetrics,
   FaceRig,
@@ -22,7 +23,7 @@ import { computeIrisDistanceCm } from './iris-distance';
 const SHOULDER_ELBOW_MIN = 0.55;
 const WRIST_MIN = 0.45;
 const FACE_BASELINE_WIDTH = 0.22;
-const POSE_VISIBILITY_KEYPOINTS = [11, 12, 13, 14, 15, 16, 23, 24] as const;
+const POSE_VISIBILITY_KEYPOINTS = [11, 12] as const;
 
 export interface RawTrackingResult {
   face: FaceLandmarkerResult;
@@ -231,6 +232,7 @@ function solveFace(result: FaceLandmarkerResult, video: HTMLVideoElement): FaceR
       blinkSettings: [0.25, 0.75],
     });
     if (!solved) return null;
+    const gaze = computeIrisGaze(landmarks);
     return {
       head: toVec(solved.head),
       eyeL: clamp01(solved.eye.l),
@@ -238,6 +240,8 @@ function solveFace(result: FaceLandmarkerResult, video: HTMLVideoElement): FaceR
       brow: clamp01(solved.brow),
       pupilX: solved.pupil.x,
       pupilY: solved.pupil.y,
+      gazeX: gaze.x,
+      gazeY: gaze.y,
       mouth: {
         A: clamp01(solved.mouth.shape.A),
         I: clamp01(solved.mouth.shape.I),
@@ -251,6 +255,51 @@ function solveFace(result: FaceLandmarkerResult, video: HTMLVideoElement): FaceR
     console.warn('Face-Solver fehlgeschlagen', err);
     return null;
   }
+}
+
+function computeIrisGaze(
+  landmarks: ReadonlyArray<{ x: number; y: number }>,
+): { x: number; y: number } {
+  const leftIris = landmarks[468];
+  const rightIris = landmarks[473];
+  const leftOuter = landmarks[33];
+  const leftInner = landmarks[133];
+  const leftTop = landmarks[159];
+  const leftBottom = landmarks[145];
+  const rightOuter = landmarks[362];
+  const rightInner = landmarks[263];
+  const rightTop = landmarks[386];
+  const rightBottom = landmarks[374];
+
+  if (!leftIris || !rightIris || !leftOuter || !leftInner || !leftTop || !leftBottom
+      || !rightOuter || !rightInner || !rightTop || !rightBottom) {
+    return { x: 0, y: 0 };
+  }
+
+  const lcx = (leftOuter.x + leftInner.x) / 2;
+  const lcy = (leftTop.y + leftBottom.y) / 2;
+  const lw = Math.abs(leftInner.x - leftOuter.x) / 2 || 0.0001;
+  const lh = Math.abs(leftBottom.y - leftTop.y) / 2 || 0.0001;
+  const lgx = (leftIris.x - lcx) / lw;
+  const lgy = (leftIris.y - lcy) / lh;
+
+  const rcx = (rightOuter.x + rightInner.x) / 2;
+  const rcy = (rightTop.y + rightBottom.y) / 2;
+  const rw = Math.abs(rightInner.x - rightOuter.x) / 2 || 0.0001;
+  const rh = Math.abs(rightBottom.y - rightTop.y) / 2 || 0.0001;
+  const rgx = (rightIris.x - rcx) / rw;
+  const rgy = (rightIris.y - rcy) / rh;
+
+  return {
+    x: clamp((lgx + rgx) / 2, -1, 1),
+    y: clamp((lgy + rgy) / 2, -1, 1),
+  };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
 }
 
 function solvePose(result: PoseLandmarkerResult, video: HTMLVideoElement, mirror: boolean): PoseRig | null {
@@ -272,6 +321,9 @@ function solvePose(result: PoseLandmarkerResult, video: HTMLVideoElement, mirror
     const rightUpper = mirror ? solved.LeftUpperArm : solved.RightUpperArm;
     const rightLower = mirror ? solved.LeftLowerArm : solved.RightLowerArm;
 
+    const leftArmWorld = buildArmWorld(landmarks3d, mirror ? 'cam-right' : 'cam-left', mirror, armsVisible.left);
+    const rightArmWorld = buildArmWorld(landmarks3d, mirror ? 'cam-left' : 'cam-right', mirror, armsVisible.right);
+
     return {
       spine: toVec(solved.Spine),
       leftUpperArm: toVec(leftUpper),
@@ -282,11 +334,50 @@ function solvePose(result: PoseLandmarkerResult, video: HTMLVideoElement, mirror
       hipsWorldPosition: toVec(solved.Hips.worldPosition ?? { x: 0, y: 0, z: 0 }),
       hipsRotation: toVec(solved.Hips.rotation ?? { x: 0, y: 0, z: 0 }),
       armsVisible,
+      leftArmWorld,
+      rightArmWorld,
     };
   } catch (err) {
     console.warn('Pose-Solver fehlgeschlagen', err);
     return null;
   }
+}
+
+function buildArmWorld(
+  landmarks3d: ReadonlyArray<{ x?: number; y?: number; z?: number; visibility?: number }>,
+  camSide: 'cam-left' | 'cam-right',
+  mirror: boolean,
+  visible: boolean,
+): ArmWorldPoints | null {
+  const shoulderIdx = camSide === 'cam-left' ? 11 : 12;
+  const elbowIdx = camSide === 'cam-left' ? 13 : 14;
+  const wristIdx = camSide === 'cam-left' ? 15 : 16;
+
+  const s = landmarks3d[shoulderIdx];
+  const e = landmarks3d[elbowIdx];
+  const w = landmarks3d[wristIdx];
+  if (!s || !e || !w) return null;
+
+  return {
+    shoulder: mpToThree(s, mirror),
+    elbow: mpToThree(e, mirror),
+    wrist: mpToThree(w, mirror),
+    visible,
+  };
+}
+
+function mpToThree(
+  lm: { x?: number; y?: number; z?: number },
+  mirror: boolean,
+): Vec3 {
+  const x = typeof lm.x === 'number' ? lm.x : 0;
+  const y = typeof lm.y === 'number' ? lm.y : 0;
+  const z = typeof lm.z === 'number' ? lm.z : 0;
+  return {
+    x: mirror ? -x : x,
+    y: -y,
+    z: -z,
+  };
 }
 
 function computeArmVisibility(

@@ -65,7 +65,52 @@ export const TrackingSettings = memo(function TrackingSettings({
         value={settings.lipsyncFromMic}
         onChange={(v) => void onUpdate('lipsyncFromMic', v)}
       />
+      <div style={{ height: 1, background: '#2a2a32', margin: '6px 0' }} />
+      <ToggleRow
+        label="3D-Face-Mesh anzeigen (volle Tesselation)"
+        value={settings.showFaceMesh}
+        onChange={(v) => void onUpdate('showFaceMesh', v)}
+      />
+      <ToggleRow
+        label="Arm-IK (Inverse Kinematik für Hand-am-Kopf-Posen)"
+        value={settings.armIkEnabled}
+        onChange={(v) => void onUpdate('armIkEnabled', v)}
+      />
+      <EngineSelector settings={settings} onUpdate={onUpdate} />
     </div>
+  );
+});
+
+interface EngineSelectorProps {
+  settings: AppSettings;
+  onUpdate: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
+}
+
+const EngineSelector = memo(function EngineSelector({
+  settings,
+  onUpdate,
+}: EngineSelectorProps): JSX.Element {
+  const platform = typeof navigator !== 'undefined' ? navigator.platform.toLowerCase() : '';
+  const isWindows = platform.includes('win');
+  const nvidiaAvailable = isWindows;
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <span style={{ fontSize: 13 }}>Tracking-Engine</span>
+      <select
+        value={settings.trackingEngine}
+        onChange={(e) => void onUpdate('trackingEngine', e.target.value as 'mediapipe' | 'nvidia')}
+      >
+        <option value="mediapipe">MediaPipe (Standard, Cross-Plattform)</option>
+        <option value="nvidia" disabled={!nvidiaAvailable}>
+          NVIDIA Broadcast (RTX-GPU){!nvidiaAvailable ? ' — nur Windows + RTX' : ''}
+        </option>
+      </select>
+      <small style={{ color: '#a0a0a8', fontSize: 11 }}>
+        {nvidiaAvailable
+          ? 'NVIDIA-Engine nutzt CUDA-Backend für präziseres Tracking auf RTX-GPUs. Engine wird nach Auswahl gestartet.'
+          : 'NVIDIA-Engine ist nur auf Windows-Builds mit RTX-GPU verfügbar. Auf Mac wird MediaPipe verwendet.'}
+      </small>
+    </label>
   );
 });
 

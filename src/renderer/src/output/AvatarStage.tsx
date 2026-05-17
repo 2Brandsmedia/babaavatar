@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import type { VRM } from '@pixiv/three-vrm';
 import type { AppSettings, PoseFrame } from '@shared/types';
@@ -14,6 +14,7 @@ import { applyPoseToVrm } from '@renderer/lib/avatar/vrm-controller';
 import { createPoseChannel } from '@renderer/lib/broadcast/pose-channel';
 import { createSettingsChannel } from '@renderer/lib/broadcast/settings-channel';
 import { createKalmanState, kalmanStep, type KalmanState } from '@renderer/lib/tracking/iris-distance';
+import { api } from '@renderer/lib/ipc/api';
 
 const BASE_CAM_Y = 1.3;
 const BASE_CAM_Z = 2.6;
@@ -52,7 +53,8 @@ function applyCameraComposition(
     const rawAuto = settings.autoZoomRefDistance / pose.irisDistanceCm;
     const clampedAuto = clamp(rawAuto, settings.autoZoomMin, settings.autoZoomMax);
     kalmanStep(kalman, clampedAuto, dt);
-    effectiveZoom *= kalman.x;
+    const deadZoneOut = Math.abs(kalman.x - 1) < 0.04 ? 1 : kalman.x;
+    effectiveZoom *= deadZoneOut;
   }
 
   const offsetX = clamp(settings.cameraOffsetX, -1, 1);
@@ -159,6 +161,7 @@ export const AvatarStage = memo(function AvatarStage({
             mirror: mirrorRef.current,
             lipsyncFromCamera: settings?.lipsyncFromCamera ?? true,
             lipsyncFromMic: settings?.lipsyncFromMic ?? true,
+            armIkEnabled: settings?.armIkEnabled ?? true,
           });
           applyAvatarMicroFollow(loaded.scene, pose);
         } else {
@@ -249,5 +252,116 @@ export const AvatarStage = memo(function AvatarStage({
     sceneRef.current.scene.background = new THREE.Color(background);
   }, [background]);
 
-  return <canvas ref={canvasRef} style={{ width: '100vw', height: '100vh', display: 'block' }} />;
+  const [hintVisible, setHintVisible] = useState(true);
+  useEffect(() => {
+    const t = window.setTimeout(() => setHintVisible(false), 4000);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  const dragRef = useRef<{
+    active: boolean;
+    startX: number;
+    startY: number;
+    startOffsetX: number;
+    startOffsetY: number;
+  } | null>(null);
+
+  const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>): void => {
+    e.preventDefault();
+    const s = settingsRef.current;
+    if (!s) return;
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    const next = clamp(s.cameraZoom + delta, 0.5, 3.0);
+    settingsRef.current = { ...s, cameraZoom: next };
+    void api.settings.set('cameraZoom', next).catch(() => undefined);
+    setHintVisible(false);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>): void => {
+    if (e.button !== 0) return;
+    const s = settingsRef.current;
+    if (!s) return;
+    dragRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      startOffsetX: s.cameraOffsetX,
+      startOffsetY: s.cameraOffsetY,
+    };
+    setHintVisible(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>): void => {
+    const d = dragRef.current;
+    const s = settingsRef.current;
+    if (!d?.active || !s) return;
+    const w = window.innerWidth || 1;
+    const h = window.innerHeight || 1;
+    const dx = ((e.clientX - d.startX) / w) * 2;
+    const dy = ((e.clientY - d.startY) / h) * -2;
+    const nextX = clamp(d.startOffsetX + dx, -1, 1);
+    const nextY = clamp(d.startOffsetY + dy, -1, 1);
+    settingsRef.current = { ...s, cameraOffsetX: nextX, cameraOffsetY: nextY };
+  };
+
+  const handleMouseUp = (): void => {
+    const d = dragRef.current;
+    const s = settingsRef.current;
+    if (d?.active && s) {
+      void api.settings.set('cameraOffsetX', s.cameraOffsetX).catch(() => undefined);
+      void api.settings.set('cameraOffsetY', s.cameraOffsetY).catch(() => undefined);
+    }
+    dragRef.current = null;
+  };
+
+  const handleDoubleClick = (): void => {
+    settingsRef.current = settingsRef.current
+      ? { ...settingsRef.current, cameraZoom: 1, cameraOffsetX: 0, cameraOffsetY: 0 }
+      : settingsRef.current;
+    void api.settings.set('cameraZoom', 1).catch(() => undefined);
+    void api.settings.set('cameraOffsetX', 0).catch(() => undefined);
+    void api.settings.set('cameraOffsetY', 0).catch(() => undefined);
+    setHintVisible(true);
+    window.setTimeout(() => setHintVisible(false), 2500);
+  };
+
+  return (
+    <>
+      <canvas
+        ref={canvasRef}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
+        style={{
+          width: '100vw',
+          height: '100vh',
+          display: 'block',
+          cursor: 'grab',
+        }}
+      />
+      {hintVisible && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: 20,
+            transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.55)',
+            color: '#ffffff',
+            padding: '8px 14px',
+            borderRadius: 999,
+            fontSize: 12,
+            fontFamily: '-apple-system, Segoe UI, sans-serif',
+            pointerEvents: 'none',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          Mausrad = Zoom · Ziehen = Position · Doppelklick = Reset
+        </div>
+      )}
+    </>
+  );
 });

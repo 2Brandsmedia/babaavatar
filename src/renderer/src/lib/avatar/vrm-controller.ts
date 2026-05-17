@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { VRMHumanBoneName, type VRM, type VRMExpressionPresetName } from '@pixiv/three-vrm';
 import type { PoseFrame, Vec3 } from '@shared/types';
 import { REST_LEFT_UPPER_ARM, REST_RIGHT_UPPER_ARM, REST_LOWER_ARM } from './rest-pose';
+import { applyArmIK } from './arm-ik';
 
 const REUSE_EULER = new THREE.Euler();
 const REUSE_QUAT = new THREE.Quaternion();
@@ -19,7 +20,10 @@ export interface VrmControllerOptions {
   mirror: boolean;
   lipsyncFromCamera: boolean;
   lipsyncFromMic: boolean;
+  armIkEnabled: boolean;
 }
+
+const IK_BLEND_FACTOR = 0.5;
 
 export function applyPoseToVrm(
   vrm: VRM,
@@ -27,9 +31,101 @@ export function applyPoseToVrm(
   options: VrmControllerOptions,
 ): void {
   applyFace(vrm, frame, options);
+  applyAllBlendShapes(vrm, frame);
+  applyGaze(vrm, frame, options.mirror);
   applyPose(vrm, frame);
+  if (options.armIkEnabled && frame.pose) {
+    if (frame.pose.leftArmWorld?.visible) {
+      applyArmIK({ vrm, side: 'Left', armWorld: frame.pose.leftArmWorld, blendFactor: IK_BLEND_FACTOR });
+    }
+    if (frame.pose.rightArmWorld?.visible) {
+      applyArmIK({ vrm, side: 'Right', armWorld: frame.pose.rightArmWorld, blendFactor: IK_BLEND_FACTOR });
+    }
+  }
   applyHands(vrm, frame);
   applyExpression(vrm, frame);
+}
+
+const ARKIT_TO_VRM_BLENDSHAPE: Readonly<Record<string, string>> = {
+  browDownLeft: 'browDownLeft',
+  browDownRight: 'browDownRight',
+  browInnerUp: 'browInnerUp',
+  browOuterUpLeft: 'browOuterUpLeft',
+  browOuterUpRight: 'browOuterUpRight',
+  cheekPuff: 'cheekPuff',
+  cheekSquintLeft: 'cheekSquintLeft',
+  cheekSquintRight: 'cheekSquintRight',
+  eyeBlinkLeft: 'eyeBlinkLeft',
+  eyeBlinkRight: 'eyeBlinkRight',
+  eyeLookDownLeft: 'eyeLookDownLeft',
+  eyeLookDownRight: 'eyeLookDownRight',
+  eyeLookInLeft: 'eyeLookInLeft',
+  eyeLookInRight: 'eyeLookInRight',
+  eyeLookOutLeft: 'eyeLookOutLeft',
+  eyeLookOutRight: 'eyeLookOutRight',
+  eyeLookUpLeft: 'eyeLookUpLeft',
+  eyeLookUpRight: 'eyeLookUpRight',
+  eyeSquintLeft: 'eyeSquintLeft',
+  eyeSquintRight: 'eyeSquintRight',
+  eyeWideLeft: 'eyeWideLeft',
+  eyeWideRight: 'eyeWideRight',
+  jawForward: 'jawForward',
+  jawLeft: 'jawLeft',
+  jawOpen: 'jawOpen',
+  jawRight: 'jawRight',
+  mouthClose: 'mouthClose',
+  mouthDimpleLeft: 'mouthDimpleLeft',
+  mouthDimpleRight: 'mouthDimpleRight',
+  mouthFrownLeft: 'mouthFrownLeft',
+  mouthFrownRight: 'mouthFrownRight',
+  mouthFunnel: 'mouthFunnel',
+  mouthLeft: 'mouthLeft',
+  mouthLowerDownLeft: 'mouthLowerDownLeft',
+  mouthLowerDownRight: 'mouthLowerDownRight',
+  mouthPressLeft: 'mouthPressLeft',
+  mouthPressRight: 'mouthPressRight',
+  mouthPucker: 'mouthPucker',
+  mouthRight: 'mouthRight',
+  mouthRollLower: 'mouthRollLower',
+  mouthRollUpper: 'mouthRollUpper',
+  mouthShrugLower: 'mouthShrugLower',
+  mouthShrugUpper: 'mouthShrugUpper',
+  mouthSmileLeft: 'mouthSmileLeft',
+  mouthSmileRight: 'mouthSmileRight',
+  mouthStretchLeft: 'mouthStretchLeft',
+  mouthStretchRight: 'mouthStretchRight',
+  mouthUpperUpLeft: 'mouthUpperUpLeft',
+  mouthUpperUpRight: 'mouthUpperUpRight',
+  noseSneerLeft: 'noseSneerLeft',
+  noseSneerRight: 'noseSneerRight',
+  tongueOut: 'tongueOut',
+};
+
+function applyAllBlendShapes(vrm: VRM, frame: PoseFrame): void {
+  const blendShapes = frame.blendShapes;
+  const manager = vrm.expressionManager;
+  if (!blendShapes || !manager) return;
+  for (const [mpName, vrmName] of Object.entries(ARKIT_TO_VRM_BLENDSHAPE)) {
+    const value = blendShapes[mpName];
+    if (typeof value === 'number') {
+      manager.setValue(vrmName as VRMExpressionPresetName, clamp01(value));
+    }
+  }
+}
+
+function applyGaze(vrm: VRM, frame: PoseFrame, mirror: boolean): void {
+  const face = frame.face;
+  const manager = vrm.expressionManager;
+  if (!face || !manager) return;
+  if (face.eyeL < 0.3 && face.eyeR < 0.3) return;
+
+  const gx = mirror ? -face.gazeX : face.gazeX;
+  const gy = face.gazeY;
+
+  manager.setValue('lookLeft' as VRMExpressionPresetName, gx < 0 ? Math.min(1, -gx) : 0);
+  manager.setValue('lookRight' as VRMExpressionPresetName, gx > 0 ? Math.min(1, gx) : 0);
+  manager.setValue('lookUp' as VRMExpressionPresetName, gy < 0 ? Math.min(1, -gy) : 0);
+  manager.setValue('lookDown' as VRMExpressionPresetName, gy > 0 ? Math.min(1, gy) : 0);
 }
 
 const FINGER_SLERP = 0.6;

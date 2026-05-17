@@ -7,7 +7,11 @@ interface DeviceOption {
   label: string;
 }
 
-export const CameraStep = memo(function CameraStep(): JSX.Element {
+interface CameraStepProps {
+  onComplete?: () => void;
+}
+
+export const CameraStep = memo(function CameraStep({ onComplete }: CameraStepProps): JSX.Element {
   const settings = useSettingsStore((s) => s.settings);
   const updateSetting = useSettingsStore((s) => s.update);
   const trackingEnabled = useTrackingStore((s) => s.trackingEnabled);
@@ -55,6 +59,10 @@ export const CameraStep = memo(function CameraStep(): JSX.Element {
   useEffect(() => {
     if (videoRef.current && previewStream) videoRef.current.srcObject = previewStream;
   }, [previewStream]);
+
+  useEffect(() => {
+    if (previewStream && devices.length > 0) onComplete?.();
+  }, [previewStream, devices.length, onComplete]);
 
   const currentId = settings?.selectedCameraId ?? '';
 

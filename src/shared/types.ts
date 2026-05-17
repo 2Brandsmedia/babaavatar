@@ -86,6 +86,9 @@ export interface AppSettings {
   autoZoomMax: number;
   lipsyncFromCamera: boolean;
   lipsyncFromMic: boolean;
+  trackingEngine: 'mediapipe' | 'nvidia';
+  showFaceMesh: boolean;
+  armIkEnabled: boolean;
 }
 
 export interface Vec3 {
@@ -101,6 +104,8 @@ export interface FaceRig {
   brow: number;
   pupilX: number;
   pupilY: number;
+  gazeX: number;
+  gazeY: number;
   mouth: {
     A: number;
     I: number;
@@ -109,6 +114,13 @@ export interface FaceRig {
     O: number;
     smile: number;
   };
+}
+
+export interface ArmWorldPoints {
+  shoulder: Vec3;
+  elbow: Vec3;
+  wrist: Vec3;
+  visible: boolean;
 }
 
 export interface PoseRig {
@@ -124,6 +136,8 @@ export interface PoseRig {
     left: boolean;
     right: boolean;
   };
+  leftArmWorld: ArmWorldPoints | null;
+  rightArmWorld: ArmWorldPoints | null;
 }
 
 export interface HandFingerRig {

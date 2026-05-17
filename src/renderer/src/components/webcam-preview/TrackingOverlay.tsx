@@ -39,6 +39,9 @@ export const TrackingOverlay = memo(function TrackingOverlay({
     const rs = (m.relativeScale ?? 1).toFixed(2);
     items.push(`Offset: x ${rx} y ${ry} · Skala ${rs}`);
   }
+  if (typeof pose.irisDistanceCm === 'number') {
+    items.push(`Distanz zur Kamera: ${pose.irisDistanceCm.toFixed(0)} cm`);
+  }
   if (pose.blendShapes) {
     const count = Object.keys(pose.blendShapes).length;
     items.push(`BlendShapes: ${count} erkannt`);
