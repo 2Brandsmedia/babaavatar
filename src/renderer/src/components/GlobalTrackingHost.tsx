@@ -119,6 +119,8 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
     reloadKey: reloadCounter,
   });
 
+  const lastPosePushedRef = useRef<number>(0);
+
   useEffect(() => {
     if (!tracking.pose) return;
     let enriched = {
@@ -144,6 +146,7 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
 
     setPose(enriched);
     channelRef.current?.publish(enriched);
+    lastPosePushedRef.current = performance.now();
   }, [
     tracking.pose,
     lipsync.phonemes,
@@ -152,6 +155,61 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
     settings?.vmcEnabled,
     settings?.vmcSourceFace,
     settings?.vmcSourceHead,
+  ]);
+
+  useEffect(() => {
+    if (!settings?.vmcEnabled) return;
+    const interval = window.setInterval(() => {
+      const vmc = vmcSnapshotRef.current;
+      if (!vmc || Date.now() - vmc.receivedAt > 2000) return;
+      if (performance.now() - lastPosePushedRef.current < 50) return;
+      const base = {
+        timestamp: performance.now(),
+        face: {
+          head: { x: 0, y: 0, z: 0 },
+          eyeL: 1,
+          eyeR: 1,
+          brow: 0,
+          pupilX: 0,
+          pupilY: 0,
+          gazeX: 0,
+          gazeY: 0,
+          mouth: { A: 0, I: 0, U: 0, E: 0, O: 0, smile: 0 },
+        },
+        pose: null,
+        hands: null,
+        gestures: null,
+        faceMetrics: null,
+        irisDistanceCm: null,
+        blendShapes: null,
+        quality: null,
+        audioPhonemes: lipsync.ready
+          ? {
+              A: lipsync.phonemes.a,
+              I: lipsync.phonemes.i,
+              U: lipsync.phonemes.u,
+              E: lipsync.phonemes.e,
+              O: lipsync.phonemes.o,
+            }
+          : null,
+        expression: null,
+      };
+      const enriched = mergeVmcIntoPose(base, vmc, {
+        applyFace: settings.vmcSourceFace,
+        applyHead: settings.vmcSourceHead,
+      });
+      setPose(enriched);
+      channelRef.current?.publish(enriched);
+      lastPosePushedRef.current = performance.now();
+    }, 33);
+    return () => window.clearInterval(interval);
+  }, [
+    settings?.vmcEnabled,
+    settings?.vmcSourceFace,
+    settings?.vmcSourceHead,
+    setPose,
+    lipsync.phonemes,
+    lipsync.ready,
   ]);
 
   useEffect(() => {

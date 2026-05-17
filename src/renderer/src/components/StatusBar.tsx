@@ -1,7 +1,9 @@
-import { memo } from 'react';
-import type { AvatarRecord } from '@shared/types';
+import { memo, useEffect, useRef } from 'react';
+import type { AvatarRecord, VmcSnapshot } from '@shared/types';
 import { useTrackingStore } from '@renderer/store/tracking';
+import { useSettingsStore } from '@renderer/store/settings';
 import { api } from '@renderer/lib/ipc/api';
+import { subscribeVmcFrames } from '@renderer/lib/tracking/vmc-channel';
 
 interface StatusBarProps {
   activeAvatar: AvatarRecord | null;
@@ -48,6 +50,7 @@ export const StatusBar = memo(function StatusBar({ activeAvatar }: StatusBarProp
         prefix="Webcam"
         active={trackingReady}
       />
+      <TrackerIndicator />
       {trackingError && (
         <span style={{ color: '#ff7878', fontSize: 11 }}>{trackingError}</span>
       )}
@@ -66,6 +69,72 @@ export const StatusBar = memo(function StatusBar({ activeAvatar }: StatusBarProp
           Output zeigen
         </button>
       </div>
+    </div>
+  );
+});
+
+const TrackerIndicator = memo(function TrackerIndicator(): JSX.Element | null {
+  const settings = useSettingsStore((s) => s.settings);
+  const dotRef = useRef<HTMLSpanElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const lastFrameRef = useRef<VmcSnapshot | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeVmcFrames((snapshot) => {
+      lastFrameRef.current = snapshot;
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const enabled = settings?.vmcEnabled ?? false;
+  const protocol = settings?.vmcProtocol ?? 'ifacialmocap';
+  const protocolLabel = protocol === 'ifacialmocap' ? 'iFacialMocap' : 'VMC';
+
+  useEffect(() => {
+    if (!enabled) return;
+    let raf = 0;
+    const tick = (): void => {
+      const last = lastFrameRef.current;
+      const active = last !== null && Date.now() - last.receivedAt < 2000;
+      if (dotRef.current) {
+        dotRef.current.style.background = active ? '#7af2c5' : '#facc15';
+      }
+      if (labelRef.current) {
+        if (active) {
+          const keys = Object.keys(last?.blendShapes ?? {}).length;
+          labelRef.current.textContent = `${protocolLabel} · ${keys} BlendShapes`;
+          labelRef.current.style.color = '#e8e8ec';
+        } else {
+          labelRef.current.textContent = `${protocolLabel} · wartet`;
+          labelRef.current.style.color = '#a0a0a8';
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [enabled, protocolLabel]);
+
+  if (!enabled) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 999, background: '#52525a' }} />
+        <span style={{ color: '#a0a0a8' }}>Tracker:</span>
+        <span style={{ color: '#6a6a72' }}>Aus</span>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span
+        ref={dotRef}
+        style={{ width: 8, height: 8, borderRadius: 999, background: '#facc15' }}
+      />
+      <span style={{ color: '#a0a0a8' }}>Tracker:</span>
+      <span ref={labelRef} style={{ color: '#a0a0a8' }}>
+        {protocolLabel} · wartet
+      </span>
     </div>
   );
 });
