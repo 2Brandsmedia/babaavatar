@@ -17,60 +17,51 @@ export const CameraStep = memo(function CameraStep({ onComplete }: CameraStepPro
   const trackingEnabled = useTrackingStore((s) => s.trackingEnabled);
   const setTrackingEnabled = useTrackingStore((s) => s.setTrackingEnabled);
   const videoStream = useTrackingStore((s) => s.videoStream);
+  const trackingError = useTrackingStore((s) => s.trackingError);
   const [devices, setDevices] = useState<DeviceOption[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [permissionGranted, setPermissionGranted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const refreshDevices = async (): Promise<void> => {
-      try {
-        if (!permissionGranted && !trackingEnabled) {
-          const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          tempStream.getTracks().forEach((t) => t.stop());
-          if (cancelled) return;
-          setPermissionGranted(true);
-        }
-        const list = await navigator.mediaDevices.enumerateDevices();
-        if (cancelled) return;
-        setDevices(
-          list
-            .filter((d) => d.kind === 'videoinput')
-            .map((d) => ({
-              deviceId: d.deviceId,
-              label: d.label || `Kamera ${d.deviceId.slice(0, 8)}`,
-            })),
-        );
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Kamera-Zugriff verweigert');
-        }
-      }
+    const refresh = async (): Promise<void> => {
+      const list = await navigator.mediaDevices.enumerateDevices();
+      if (cancelled) return;
+      setDevices(
+        list
+          .filter((d) => d.kind === 'videoinput')
+          .map((d) => ({
+            deviceId: d.deviceId,
+            label: d.label || `Kamera ${d.deviceId.slice(0, 8) || 'unbekannt'}`,
+          })),
+      );
     };
-    void refreshDevices();
+    void refresh();
+    const onChange = (): void => void refresh();
+    navigator.mediaDevices.addEventListener('devicechange', onChange);
     return () => {
       cancelled = true;
+      navigator.mediaDevices.removeEventListener('devicechange', onChange);
     };
-  }, [permissionGranted, trackingEnabled]);
+  }, [videoStream]);
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.srcObject = videoStream;
   }, [videoStream]);
 
   useEffect(() => {
-    if (videoStream && devices.length > 0) onComplete?.();
-  }, [videoStream, devices.length, onComplete]);
+    if (videoStream) onComplete?.();
+  }, [videoStream, onComplete]);
 
   const currentId = settings?.selectedCameraId ?? '';
+  const hasLabels = devices.some((d) => d.label && !d.label.startsWith('Kamera '));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <p style={{ margin: 0, fontSize: 13 }}>
-        Wähle die Kamera, die für das Gesichts-Tracking genutzt werden soll. Die Vorschau zeigt
-        live, was die App sieht.
+        Wähle die Kamera für das Gesichts-Tracking. Die Vorschau unten zeigt den aktiven
+        Tracking-Stream.
       </p>
-      {error && (
+      {trackingError && (
         <div
           style={{
             background: '#3a1818',
@@ -81,7 +72,7 @@ export const CameraStep = memo(function CameraStep({ onComplete }: CameraStepPro
             fontSize: 13,
           }}
         >
-          {error}
+          {trackingError}
         </div>
       )}
       <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -98,6 +89,11 @@ export const CameraStep = memo(function CameraStep({ onComplete }: CameraStepPro
             </option>
           ))}
         </select>
+        {!hasLabels && devices.length > 0 && (
+          <small style={{ color: '#a0a0a8' }}>
+            Geräte-Namen sind erst sichtbar wenn die Webcam einmal aktiviert wurde.
+          </small>
+        )}
       </label>
       <div
         style={{
@@ -136,17 +132,19 @@ export const CameraStep = memo(function CameraStep({ onComplete }: CameraStepPro
               padding: 16,
             }}
           >
-            Webcam ist nicht aktiv. Klick auf „Tracking starten" unten oder oben in der Statusleiste „Webcam: AUS".
+            {trackingEnabled
+              ? 'Webcam wird gestartet…'
+              : 'Webcam ist nicht aktiv. Aktiviere sie oben rechts in der Statusleiste oder mit dem Button unten.'}
           </div>
         )}
       </div>
       <button
         type="button"
         className="primary"
-        disabled={trackingEnabled}
+        disabled={trackingEnabled && videoStream !== null}
         onClick={() => setTrackingEnabled(true)}
       >
-        {trackingEnabled ? 'Tracking läuft ✓' : 'Tracking starten'}
+        {trackingEnabled && videoStream !== null ? 'Tracking läuft ✓' : 'Webcam aktivieren'}
       </button>
     </div>
   );
