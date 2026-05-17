@@ -37,16 +37,24 @@ export function mergeVmcIntoPose(
     };
   }
 
-  if (options.applyHead && vmc.headQuat && next.face) {
-    REUSE_QUAT.set(vmc.headQuat.x, vmc.headQuat.y, vmc.headQuat.z, vmc.headQuat.w);
-    REUSE_EULER.setFromQuaternion(REUSE_QUAT, 'YXZ');
-    next = {
-      ...next,
-      face: {
-        ...next.face,
-        head: { x: REUSE_EULER.x, y: REUSE_EULER.y, z: REUSE_EULER.z },
-      },
-    };
+  if (options.applyHead && next.face) {
+    let euler: { x: number; y: number; z: number } | null = null;
+    if (vmc.headEuler) {
+      euler = vmc.headEuler;
+    } else if (vmc.headQuat) {
+      REUSE_QUAT.set(vmc.headQuat.x, vmc.headQuat.y, vmc.headQuat.z, vmc.headQuat.w);
+      REUSE_EULER.setFromQuaternion(REUSE_QUAT, 'YXZ');
+      euler = { x: REUSE_EULER.x, y: REUSE_EULER.y, z: REUSE_EULER.z };
+    }
+    if (euler) {
+      next = {
+        ...next,
+        face: {
+          ...next.face,
+          head: euler,
+        },
+      };
+    }
   }
 
   return next;

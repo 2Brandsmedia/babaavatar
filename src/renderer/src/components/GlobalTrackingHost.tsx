@@ -47,12 +47,14 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
   useEffect(() => {
     if (!settings) return;
     if (settings.vmcEnabled) {
-      void api.vmc.start(settings.vmcPort).catch(() => undefined);
+      void api.vmc
+        .start({ protocol: settings.vmcProtocol, port: settings.vmcPort })
+        .catch(() => undefined);
     } else {
       void api.vmc.stop().catch(() => undefined);
       vmcSnapshotRef.current = null;
     }
-  }, [settings?.vmcEnabled, settings?.vmcPort]);
+  }, [settings?.vmcEnabled, settings?.vmcProtocol, settings?.vmcPort]);
 
   useEffect(() => {
     if (!trackingEnabled) {

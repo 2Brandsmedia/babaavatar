@@ -5,7 +5,6 @@ import {
   DEFAULT_CHROMA_COLOR,
   DEFAULT_GESTURE_MAPPINGS,
   DEFAULT_TRACKING_SETTINGS,
-  VMC_DEFAULT_PORT,
 } from '../shared/constants.js';
 import { createLogger } from './logger.js';
 
@@ -50,7 +49,8 @@ const defaults: AppSettings = {
   gestureMappings: { ...DEFAULT_GESTURE_MAPPINGS },
   handEdgeThreshold: 0.08,
   vmcEnabled: false,
-  vmcPort: VMC_DEFAULT_PORT,
+  vmcProtocol: 'ifacialmocap',
+  vmcPort: 49983,
   vmcSourceFace: true,
   vmcSourceHead: true,
   springBoneColliderMultiplier: 1,
@@ -106,6 +106,7 @@ export function getAll(): AppSettings {
     gestureMappings: raw.gestureMappings ?? defaults.gestureMappings,
     handEdgeThreshold: raw.handEdgeThreshold ?? defaults.handEdgeThreshold,
     vmcEnabled: raw.vmcEnabled ?? defaults.vmcEnabled,
+    vmcProtocol: raw.vmcProtocol ?? defaults.vmcProtocol,
     vmcPort: raw.vmcPort ?? defaults.vmcPort,
     vmcSourceFace: raw.vmcSourceFace ?? defaults.vmcSourceFace,
     vmcSourceHead: raw.vmcSourceHead ?? defaults.vmcSourceHead,

@@ -5,6 +5,7 @@ import type {
   AvatarProfile,
   AvatarRecord,
   ExpressionHotkey,
+  TrackerProtocol,
   VrmLicense,
 } from '../shared/types.js';
 
@@ -53,8 +54,10 @@ const api = {
   },
 
   vmc: {
-    start: (port: number): Promise<{ running: boolean; port: number | null; lastMessageAt: number }> =>
-      ipcRenderer.invoke(IPC.VMC_START, port),
+    start: (
+      payload: { protocol: TrackerProtocol; port: number } | number,
+    ): Promise<{ running: boolean; port: number | null; lastMessageAt: number }> =>
+      ipcRenderer.invoke(IPC.VMC_START, payload),
     stop: (): Promise<{ running: boolean; port: number | null; lastMessageAt: number }> =>
       ipcRenderer.invoke(IPC.VMC_STOP),
     status: (): Promise<{ running: boolean; port: number | null; lastMessageAt: number }> =>

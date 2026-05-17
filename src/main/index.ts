@@ -11,6 +11,7 @@ import { registerVroidProtocol, handleOpenUrl, focusControlForCallback } from '.
 import { unregisterAll as unregisterHotkeys } from './hotkeys.js';
 import { initAutoUpdater } from './auto-updater.js';
 import { stopVmcServer } from './vmc-server.js';
+import { stopIfmServer } from './ifacialmocap-server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -92,6 +93,7 @@ app.on('before-quit', () => {
   log.info('Beende BabaAvatar');
   unregisterHotkeys();
   void stopVmcServer();
+  void stopIfmServer();
   if (outputWindow && !outputWindow.isDestroyed()) {
     outputWindow.removeAllListeners('close');
     outputWindow.destroy();

@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import type { AppSettings, VmcSnapshot } from '@shared/types';
+import type { AppSettings, TrackerProtocol, VmcSnapshot } from '@shared/types';
 import { api } from '@renderer/lib/ipc/api';
 import { subscribeVmcFrames } from '@renderer/lib/tracking/vmc-channel';
 
@@ -7,6 +7,11 @@ interface ExternalTrackerSettingsProps {
   settings: AppSettings;
   onUpdate: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
 }
+
+const PROTOCOL_DEFAULT_PORT: Record<TrackerProtocol, number> = {
+  vmc: 39539,
+  ifacialmocap: 49983,
+};
 
 export const ExternalTrackerSettings = memo(function ExternalTrackerSettings({
   settings,
@@ -34,16 +39,25 @@ export const ExternalTrackerSettings = memo(function ExternalTrackerSettings({
     }
   };
 
+  const handleProtocolChange = (next: TrackerProtocol): void => {
+    void onUpdate('vmcProtocol', next);
+    const targetPort = PROTOCOL_DEFAULT_PORT[next];
+    if (settings.vmcPort !== targetPort) {
+      void onUpdate('vmcPort', targetPort);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 720 }}>
       <p style={{ margin: 0, fontSize: 12, color: '#a0a0a8' }}>
-        Empfange Tracking-Daten von externen Apps via VMC (Virtual Motion Capture) auf einem
-        UDP-Port. Kompatibel mit RhyLive (iPhone, kostenlos), iFacialMocap, MeowFace,
-        VirtualMotionCapture, SlimeVR-Bridge u.a.
+        Empfange Tracking-Daten von einer iPhone-App auf einem UDP-Port. Zwei Protokolle
+        werden unterstützt: <strong>iFacialMocap</strong> (proprietär, Standard für iPhone)
+        und <strong>VMC</strong> (Virtual Motion Capture, von RhyLive, VirtualMotionCapture,
+        SlimeVR-Bridge u.a. genutzt).
       </p>
 
       <ToggleRow
-        label="VMC-Empfänger aktiv"
+        label="Empfänger aktiv"
         value={settings.vmcEnabled}
         onChange={(v) => void onUpdate('vmcEnabled', v)}
       />
@@ -51,7 +65,18 @@ export const ExternalTrackerSettings = memo(function ExternalTrackerSettings({
       <ConnectionStatus enabled={settings.vmcEnabled} />
 
       <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span style={{ fontSize: 13 }}>UDP-Port (Standard: 39539)</span>
+        <span style={{ fontSize: 13 }}>Protokoll</span>
+        <select
+          value={settings.vmcProtocol}
+          onChange={(e) => handleProtocolChange(e.target.value as TrackerProtocol)}
+        >
+          <option value="ifacialmocap">iFacialMocap / iFacialMocapTr (iPhone, Port 49983)</option>
+          <option value="vmc">VMC Standard (RhyLive, VirtualMotionCapture, Port 39539)</option>
+        </select>
+      </label>
+
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span style={{ fontSize: 13 }}>UDP-Port</span>
         <input
           type="number"
           value={portInput}
@@ -73,7 +98,7 @@ export const ExternalTrackerSettings = memo(function ExternalTrackerSettings({
       </label>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span style={{ fontSize: 13, color: '#cfd0d6' }}>Daten-Quellen aus VMC</span>
+        <span style={{ fontSize: 13, color: '#cfd0d6' }}>Daten-Quellen</span>
         <ToggleRow
           label="Face-BlendShapes (52 ARKit-Werte: Mund, Augen, Brauen, …)"
           value={settings.vmcSourceFace}
@@ -86,36 +111,82 @@ export const ExternalTrackerSettings = memo(function ExternalTrackerSettings({
         />
       </div>
 
-      <div
-        style={{
-          background: '#15151a',
-          border: '1px solid #2a2a32',
-          borderRadius: 12,
-          padding: 14,
-          fontSize: 12,
-          color: '#a0a0a8',
-          lineHeight: 1.6,
-        }}
-      >
-        <strong style={{ color: '#cfd0d6' }}>Schnellstart mit iPhone (RhyLive, gratis):</strong>
-        <ol style={{ margin: '8px 0 0 18px', padding: 0 }}>
-          <li>iPhone und PC im selben WLAN</li>
-          <li>App "RhyLive" aus dem App Store installieren (kostenlos)</li>
-          <li>VMC-Empfänger oben aktivieren, Port belassen ({settings.vmcPort})</li>
-          <li>
-            In RhyLive deine PC-IP eintragen:{' '}
-            {localIps.length > 0 ? (
-              <code style={{ color: '#7aa7ff', background: '#0f0f12', padding: '2px 6px', borderRadius: 4 }}>
-                {localIps.join(' / ')}
-              </code>
-            ) : (
-              <em>(keine Netzwerk-IP gefunden)</em>
-            )}{' '}
-            und Port <code style={{ color: '#7aa7ff' }}>{settings.vmcPort}</code>
-          </li>
-          <li>"Send"-Button in RhyLive drücken – die LED oben wird grün</li>
-        </ol>
-      </div>
+      <SetupGuide protocol={settings.vmcProtocol} localIps={localIps} port={settings.vmcPort} />
+    </div>
+  );
+});
+
+interface SetupGuideProps {
+  protocol: TrackerProtocol;
+  localIps: string[];
+  port: number;
+}
+
+const SetupGuide = memo(function SetupGuide({
+  protocol,
+  localIps,
+  port,
+}: SetupGuideProps): JSX.Element {
+  const ipDisplay =
+    localIps.length > 0 ? (
+      <code style={{ color: '#7aa7ff', background: '#0f0f12', padding: '2px 6px', borderRadius: 4 }}>
+        {localIps.join(' / ')}
+      </code>
+    ) : (
+      <em>(keine Netzwerk-IP gefunden)</em>
+    );
+
+  return (
+    <div
+      style={{
+        background: '#15151a',
+        border: '1px solid #2a2a32',
+        borderRadius: 12,
+        padding: 14,
+        fontSize: 12,
+        color: '#a0a0a8',
+        lineHeight: 1.6,
+      }}
+    >
+      {protocol === 'ifacialmocap' ? (
+        <>
+          <strong style={{ color: '#cfd0d6' }}>Schnellstart mit iFacialMocap / iFacialMocapTr:</strong>
+          <ol style={{ margin: '8px 0 0 18px', padding: 0 }}>
+            <li>iPhone und PC im selben WLAN</li>
+            <li>
+              App <strong>iFacialMocap</strong> (5,99 €) oder <strong>iFacialMocapTr</strong>{' '}
+              (gratis, mit Werbung) aus dem App Store
+            </li>
+            <li>Empfänger oben aktivieren, Port belassen ({port})</li>
+            <li>
+              In der iPhone-App deine PC-IP eintragen: {ipDisplay} und Port{' '}
+              <code style={{ color: '#7aa7ff' }}>{port}</code>
+            </li>
+            <li>iPhone-App startet automatisch das Streaming, sobald BabaAvatar den
+              Handshake schickt (alle 1 s).</li>
+          </ol>
+          <p style={{ margin: '10px 0 0 0' }}>
+            <strong style={{ color: '#facc15' }}>Wichtig</strong>: das iPhone schickt
+            erst Daten, nachdem BabaAvatar einen Handshake-Trigger gesendet hat. Falls
+            die LED nach 10 Sekunden noch grau bleibt: Firewall auf dem PC prüfen
+            (UDP-Port {port} erlauben).
+          </p>
+        </>
+      ) : (
+        <>
+          <strong style={{ color: '#cfd0d6' }}>Schnellstart mit RhyLive (VMC):</strong>
+          <ol style={{ margin: '8px 0 0 18px', padding: 0 }}>
+            <li>iPhone und PC im selben WLAN</li>
+            <li>App <strong>RhyLive</strong> (gratis, chinesische UI) aus dem App Store</li>
+            <li>Empfänger oben aktivieren, Port belassen ({port})</li>
+            <li>
+              In RhyLive deine PC-IP eintragen: {ipDisplay} und Port{' '}
+              <code style={{ color: '#7aa7ff' }}>{port}</code>
+            </li>
+            <li>„Send"-Button in RhyLive drücken — die LED oben wird grün</li>
+          </ol>
+        </>
+      )}
     </div>
   );
 });

@@ -100,6 +100,7 @@ export interface AppSettings {
   gestureMappings: Partial<Record<GestureName, GestureAction | null>>;
   handEdgeThreshold: number;
   vmcEnabled: boolean;
+  vmcProtocol: TrackerProtocol;
   vmcPort: number;
   vmcSourceFace: boolean;
   vmcSourceHead: boolean;
@@ -249,9 +250,12 @@ export interface PoseFrame {
   } | null;
 }
 
+export type TrackerProtocol = 'vmc' | 'ifacialmocap';
+
 export interface VmcSnapshot {
   blendShapes: Record<string, number>;
   headQuat: { x: number; y: number; z: number; w: number } | null;
+  headEuler: { x: number; y: number; z: number } | null;
   receivedAt: number;
 }
 

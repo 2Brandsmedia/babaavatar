@@ -25,7 +25,14 @@ import * as hotkeys from './hotkeys.js';
 import type { AvatarProfile, ExpressionHotkey } from '../shared/types.js';
 import { createLogger } from './logger.js';
 import { startVmcServer, stopVmcServer, getVmcStatus, setVmcWindows } from './vmc-server.js';
+import {
+  startIfmServer,
+  stopIfmServer,
+  getIfmStatus,
+  setIfmWindows,
+} from './ifacialmocap-server.js';
 import os from 'node:os';
+import type { TrackerProtocol } from '../shared/types.js';
 
 interface IpcContext {
   controlWindow: BrowserWindow;
@@ -54,19 +61,38 @@ export function registerIpcHandlers(context: IpcContext): void {
   registerHotkeyHandlers();
   registerVmcHandlers();
   setVmcWindows({ controlWindow: context.controlWindow, outputWindow: context.outputWindow });
+  setIfmWindows({ controlWindow: context.controlWindow, outputWindow: context.outputWindow });
   log.info('IPC-Handler registriert');
 }
 
 function registerVmcHandlers(): void {
-  ipcMain.handle(IPC.VMC_START, async (_e, port: number) => {
-    await startVmcServer(port);
-    return getVmcStatus();
-  });
+  ipcMain.handle(
+    IPC.VMC_START,
+    async (_e, payload: { protocol?: TrackerProtocol; port: number } | number) => {
+      const config =
+        typeof payload === 'number'
+          ? { protocol: 'vmc' as TrackerProtocol, port: payload }
+          : { protocol: payload.protocol ?? 'vmc', port: payload.port };
+      if (config.protocol === 'ifacialmocap') {
+        await stopVmcServer();
+        await startIfmServer(config.port);
+        return getIfmStatus();
+      }
+      await stopIfmServer();
+      await startVmcServer(config.port);
+      return getVmcStatus();
+    },
+  );
   ipcMain.handle(IPC.VMC_STOP, async () => {
     await stopVmcServer();
-    return getVmcStatus();
+    await stopIfmServer();
+    return { running: false, port: null, lastMessageAt: 0 };
   });
-  ipcMain.handle(IPC.VMC_STATUS, () => getVmcStatus());
+  ipcMain.handle(IPC.VMC_STATUS, () => {
+    const vmc = getVmcStatus();
+    if (vmc.running) return vmc;
+    return getIfmStatus();
+  });
   ipcMain.handle(IPC.VMC_LOCAL_IPS, () => {
     const result: string[] = [];
     const ifaces = os.networkInterfaces();

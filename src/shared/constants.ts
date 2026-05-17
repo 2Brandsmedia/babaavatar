@@ -86,3 +86,6 @@ export const DEFAULT_GESTURE_MAPPINGS = {
 } as const;
 
 export const VMC_DEFAULT_PORT = 39539;
+export const IFACIALMOCAP_DEFAULT_PORT = 49983;
+export const IFACIALMOCAP_HANDSHAKE_MAGIC =
+  'iFacialMocap_sahuasouryya9218sauhuiayeta91555dy3719';

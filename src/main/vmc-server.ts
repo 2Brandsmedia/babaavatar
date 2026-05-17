@@ -145,6 +145,7 @@ function flushSnapshot(): void {
   const snapshot: VmcSnapshot = {
     blendShapes: { ...pendingBlend },
     headQuat: pendingHead ? { ...pendingHead } : null,
+    headEuler: null,
     receivedAt: now,
   };
   outputWindow?.webContents.send(IPC.VMC_FRAME, snapshot);
