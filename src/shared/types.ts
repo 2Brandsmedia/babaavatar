@@ -106,6 +106,7 @@ export interface AppSettings {
   vmcSourceHead: boolean;
   springBoneColliderMultiplier: number;
   trackingSource: TrackingSource;
+  legTrackingEnabled: boolean;
   maxineExePath: string | null;
   maxineCameraIndex: number;
   maxineCameraCap: number;
@@ -160,6 +161,14 @@ export interface PoseRig {
   };
   leftArmWorld: ArmWorldPoints | null;
   rightArmWorld: ArmWorldPoints | null;
+  leftUpperLeg: Vec3 | null;
+  leftLowerLeg: Vec3 | null;
+  rightUpperLeg: Vec3 | null;
+  rightLowerLeg: Vec3 | null;
+  legsVisible: {
+    left: boolean;
+    right: boolean;
+  };
 }
 
 export interface HandFingerRig {

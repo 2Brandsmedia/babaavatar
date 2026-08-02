@@ -56,6 +56,7 @@ export function runFrame(options: FrameLoopOptions): void {
         lipsyncFromMic: settings?.lipsyncFromMic ?? true,
         armIkEnabled: settings?.armIkEnabled ?? true,
         handTrackingEnabled: settings?.handTrackingEnabled ?? true,
+        legTrackingEnabled: settings?.legTrackingEnabled ?? true,
         audioVolume,
       });
       applyAvatarMicroFollow(loaded.scene, pose);

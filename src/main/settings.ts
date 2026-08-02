@@ -55,6 +55,7 @@ const defaults: AppSettings = {
   vmcSourceHead: true,
   springBoneColliderMultiplier: 1,
   trackingSource: 'webcam',
+  legTrackingEnabled: true,
   maxineExePath: null,
   maxineCameraIndex: 0,
   maxineCameraCap: 0,
@@ -119,6 +120,7 @@ export function getAll(): AppSettings {
     springBoneColliderMultiplier:
       raw.springBoneColliderMultiplier ?? defaults.springBoneColliderMultiplier,
     trackingSource: raw.trackingSource ?? defaults.trackingSource,
+    legTrackingEnabled: raw.legTrackingEnabled ?? defaults.legTrackingEnabled,
     maxineExePath: raw.maxineExePath ?? defaults.maxineExePath,
     maxineCameraIndex: raw.maxineCameraIndex ?? defaults.maxineCameraIndex,
     maxineCameraCap: raw.maxineCameraCap ?? defaults.maxineCameraCap,

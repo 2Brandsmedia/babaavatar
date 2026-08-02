@@ -16,6 +16,7 @@ export interface VrmControllerOptions {
   lipsyncFromMic: boolean;
   armIkEnabled: boolean;
   handTrackingEnabled: boolean;
+  legTrackingEnabled: boolean;
   audioVolume: number;
 }
 
@@ -28,7 +29,7 @@ export function applyPoseToVrm(
   applyAllBlendShapes(vrm, frame);
   applyGaze(vrm, frame, options.mirror);
   if (options.handTrackingEnabled) {
-    applyPose(vrm, frame, options.mirror);
+    applyPose(vrm, frame, options.mirror, options.legTrackingEnabled);
     if (options.armIkEnabled && frame.pose) {
       if (frame.pose.leftArmWorld?.visible) {
         applyArmIK({

@@ -57,7 +57,7 @@ Tests sind noch nicht eingerichtet. Wenn welche entstehen, dann unter `src/**/__
 Webcam (getUserMedia, src/renderer/src/lib/tracking/use-webcam.ts)
    └─► MediaPipe Tasks Vision (mediapipe-setup.ts)
          ├─ FaceLandmarker  (52 BlendShapes + Iris)
-         ├─ PoseLandmarker  (33 Punkte, Oberkörper)
+         ├─ PoseLandmarker  (33 Punkte, Ganzkörper — Beine/Hüfte seit v0.7.0, Hysterese-Gating)
          └─ HandLandmarker  (21 × 2 Hände)
    └─► Kalidokit-Mapping (rigging.ts) → PoseFrame
    └─► OneEuroFilter (smoother.ts) ← gegen Jitter

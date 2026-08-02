@@ -2,9 +2,25 @@ import * as Kalidokit from 'kalidokit';
 import type { PoseLandmarkerResult } from '@mediapipe/tasks-vision';
 import type { ArmWorldPoints, PoseRig, Vec3 } from '@shared/types';
 import { createLogger } from '@renderer/lib/logger';
-import { POSE_VISIBILITY_KEYPOINTS, SHOULDER_ELBOW_MIN, WRIST_MIN, toVec } from './rigging-common';
+import {
+  ANKLE_MIN,
+  HIP_KNEE_MIN,
+  POSE_VISIBILITY_KEYPOINTS,
+  SHOULDER_ELBOW_MIN,
+  WRIST_MIN,
+  toVec,
+} from './rigging-common';
+import { VisibilityGate } from './visibility-gate';
 
 const log = createLogger('rigging-pose');
+
+// Hysterese gegen Flackern an der Sichtbarkeits-Schwelle (Konzept: Tracking-Verlust ist
+// ein zeitgesteuerter Übergang, kein Frame-Schalter). Modul-Zustand ist hier okay —
+// es gibt genau eine Tracking-Pipeline pro Fenster.
+const armGateLeft = new VisibilityGate();
+const armGateRight = new VisibilityGate();
+const legGateLeft = new VisibilityGate(200, 500);
+const legGateRight = new VisibilityGate(200, 500);
 
 export function solvePose(
   result: PoseLandmarkerResult,
@@ -18,11 +34,21 @@ export function solvePose(
     const solved = Kalidokit.Pose.solve(landmarks3d, landmarks2d, {
       runtime: 'mediapipe',
       video,
-      enableLegs: false,
+      enableLegs: true,
     });
     if (!solved) return null;
 
-    const armsVisible = computeArmVisibility(landmarks3d, mirror);
+    const now = performance.now();
+    const armsRaw = computeArmVisibility(landmarks3d, mirror);
+    const armsVisible = {
+      left: armGateLeft.update(armsRaw.left, now),
+      right: armGateRight.update(armsRaw.right, now),
+    };
+    const legsRaw = computeLegVisibility(landmarks2d, mirror);
+    const legsVisible = {
+      left: legGateLeft.update(legsRaw.left, now),
+      right: legGateRight.update(legsRaw.right, now),
+    };
 
     const leftUpper = mirror ? solved.RightUpperArm : solved.LeftUpperArm;
     const leftLower = mirror ? solved.RightLowerArm : solved.LeftLowerArm;
@@ -54,6 +80,11 @@ export function solvePose(
       armsVisible,
       leftArmWorld,
       rightArmWorld,
+      leftUpperLeg: legVec(mirror ? solved.RightUpperLeg : solved.LeftUpperLeg),
+      leftLowerLeg: legVec(mirror ? solved.RightLowerLeg : solved.LeftLowerLeg),
+      rightUpperLeg: legVec(mirror ? solved.LeftUpperLeg : solved.RightUpperLeg),
+      rightLowerLeg: legVec(mirror ? solved.LeftLowerLeg : solved.RightLowerLeg),
+      legsVisible,
     };
   } catch (err) {
     log.warn('Pose-Solver fehlgeschlagen', err);
@@ -107,6 +138,34 @@ function mpToThree(lm: { x?: number; y?: number; z?: number }, mirror: boolean):
     x: mirror ? -x : x,
     y: -y,
     z: -z,
+  };
+}
+
+function legVec(value: { x: number; y: number; z: number } | undefined): Vec3 | null {
+  if (!value) return null;
+  return toVec(value);
+}
+
+// Sichtbarkeit über 2D-Landmarks (die tragen die MediaPipe-visibility):
+// Bein gilt als trackbar, wenn Hüfte UND Knie sicher sind; der Knöchel verbessert
+// nur die Qualität, ist aber nicht Pflicht (sitzende Streamer haben oft kein Fußbild).
+function computeLegVisibility(
+  landmarks: ReadonlyArray<{ visibility?: number }>,
+  mirror: boolean,
+): { left: boolean; right: boolean } {
+  const camLeft =
+    (landmarks[23]?.visibility ?? 0) >= HIP_KNEE_MIN &&
+    (landmarks[25]?.visibility ?? 0) >= HIP_KNEE_MIN &&
+    ((landmarks[27]?.visibility ?? 0) >= ANKLE_MIN ||
+      (landmarks[25]?.visibility ?? 0) >= HIP_KNEE_MIN + 0.2);
+  const camRight =
+    (landmarks[24]?.visibility ?? 0) >= HIP_KNEE_MIN &&
+    (landmarks[26]?.visibility ?? 0) >= HIP_KNEE_MIN &&
+    ((landmarks[28]?.visibility ?? 0) >= ANKLE_MIN ||
+      (landmarks[26]?.visibility ?? 0) >= HIP_KNEE_MIN + 0.2);
+  return {
+    left: mirror ? camRight : camLeft,
+    right: mirror ? camLeft : camRight,
   };
 }
 

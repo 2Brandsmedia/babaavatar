@@ -46,6 +46,11 @@ export class PoseSmoother {
             armsVisible: frame.pose.armsVisible,
             leftArmWorld: this.smoothArmWorld('lArmW', frame.pose.leftArmWorld, t),
             rightArmWorld: this.smoothArmWorld('rArmW', frame.pose.rightArmWorld, t),
+            leftUpperLeg: this.smoothNullableVec('lUpLeg', frame.pose.leftUpperLeg, t),
+            leftLowerLeg: this.smoothNullableVec('lLoLeg', frame.pose.leftLowerLeg, t),
+            rightUpperLeg: this.smoothNullableVec('rUpLeg', frame.pose.rightUpperLeg, t),
+            rightLowerLeg: this.smoothNullableVec('rLoLeg', frame.pose.rightLowerLeg, t),
+            legsVisible: frame.pose.legsVisible,
           }
         : null,
       faceMetrics: frame.faceMetrics
@@ -121,6 +126,11 @@ export class PoseSmoother {
         distal: this.smoothVec(`${prefix}LD`, hand.little.distal, t),
       },
     };
+  }
+
+  private smoothNullableVec(key: string, vec: Vec3 | null, t: number): Vec3 | null {
+    if (!vec) return null;
+    return this.smoothVec(key, vec, t);
   }
 
   private smoothVec(key: string, vec: Vec3, t: number): Vec3 {

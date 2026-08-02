@@ -83,6 +83,11 @@ export const TrackingSettings = memo(function TrackingSettings({
         value={settings.handTrackingEnabled}
         onChange={(v) => void onUpdate('handTrackingEnabled', v)}
       />
+      <ToggleRow
+        label="Bein-Tracking (Ganzkörper, wenn Beine im Bild)"
+        value={settings.legTrackingEnabled}
+        onChange={(v) => void onUpdate('legTrackingEnabled', v)}
+      />
       <SliderRow
         label="Hand-Rand-Threshold (gegen Jitter am Bildschirmrand)"
         value={settings.handEdgeThreshold}

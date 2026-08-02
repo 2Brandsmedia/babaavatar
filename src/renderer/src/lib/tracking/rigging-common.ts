@@ -8,6 +8,8 @@ import type { AutoCalibration } from './auto-calibration';
 
 export const SHOULDER_ELBOW_MIN = 0.55;
 export const WRIST_MIN = 0.45;
+export const HIP_KNEE_MIN = 0.6;
+export const ANKLE_MIN = 0.5;
 export const FACE_BASELINE_WIDTH = 0.22;
 export const POSE_VISIBILITY_KEYPOINTS = [11, 12] as const;
 
