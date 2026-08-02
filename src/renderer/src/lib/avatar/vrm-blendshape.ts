@@ -83,6 +83,20 @@ export function getCapabilities(vrm: VRM): VrmCapabilities {
   return caps;
 }
 
+// Wink-Verstärkung: Beim echten Einäugig-Zwinkern zieht MediaPipe BEIDE Augen etwas zu —
+// dann kippt oft keines über die Schwelle. Ist die Differenz groß genug, spreizen wir:
+// das geschlossenere Auge wird ganz zu, das offenere bleibt offen.
+const WINK_DIFF_THRESHOLD = 0.22;
+
+export function enhanceWink(left: number, right: number): { left: number; right: number } {
+  const diff = left - right;
+  if (Math.abs(diff) < WINK_DIFF_THRESHOLD) return { left, right };
+  if (diff > 0) {
+    return { left: clamp01(left * 1.45), right: right * 0.4 };
+  }
+  return { left: left * 0.4, right: clamp01(right * 1.45) };
+}
+
 function maxN(...values: Array<number | undefined>): number {
   let m = 0;
   for (const v of values) if (typeof v === 'number' && v > m) m = v;
@@ -96,8 +110,11 @@ export function applyAllBlendShapes(vrm: VRM, frame: PoseFrame): void {
   const caps = getCapabilities(vrm);
 
   if (caps.isArkit) {
+    const wink = enhanceWink(blendShapes['eyeBlinkLeft'] ?? 0, blendShapes['eyeBlinkRight'] ?? 0);
     for (const mpName of Object.keys(ARKIT_TO_VRM_BLENDSHAPE)) {
-      const value = blendShapes[mpName];
+      let value = blendShapes[mpName];
+      if (mpName === 'eyeBlinkLeft') value = wink.left;
+      if (mpName === 'eyeBlinkRight') value = wink.right;
       if (typeof value !== 'number') continue;
       const actual = caps.resolve(mpName);
       if (actual) manager.setValue(actual as VRMExpressionPresetName, clamp01(value));
@@ -111,13 +128,12 @@ export function applyAllBlendShapes(vrm: VRM, frame: PoseFrame): void {
     manager.setValue(actual as VRMExpressionPresetName, clamp01(value));
   };
 
-  const blinkL = blendShapes['eyeBlinkLeft'] ?? 0;
-  const blinkR = blendShapes['eyeBlinkRight'] ?? 0;
-  setIf('blink_l', blinkL);
-  setIf('blinkLeft', blinkL);
-  setIf('blink_r', blinkR);
-  setIf('blinkRight', blinkR);
-  setIf('blink', Math.max(blinkL, blinkR));
+  const wink = enhanceWink(blendShapes['eyeBlinkLeft'] ?? 0, blendShapes['eyeBlinkRight'] ?? 0);
+  setIf('blink_l', wink.left);
+  setIf('blinkLeft', wink.left);
+  setIf('blink_r', wink.right);
+  setIf('blinkRight', wink.right);
+  setIf('blink', Math.max(wink.left, wink.right));
 
   const jaw = blendShapes['jawOpen'] ?? 0;
   setIf('aa', jaw);

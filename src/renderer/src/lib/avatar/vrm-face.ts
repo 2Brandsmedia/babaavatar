@@ -1,6 +1,7 @@
 import { VRMHumanBoneName, type VRM, type VRMExpressionPresetName } from '@pixiv/three-vrm';
 import type { PoseFrame } from '@shared/types';
 import { applyEulerToBone, clamp01 } from './vrm-shared';
+import { enhanceWink, getCapabilities } from './vrm-blendshape';
 
 const SLERP_HEAD = 0.5;
 const HEAD_DAMPENER = 0.7;
@@ -38,11 +39,13 @@ export function applyFace(vrm: VRM, frame: PoseFrame, options: FaceApplyOptions)
   const manager = vrm.expressionManager;
   if (!manager) return;
 
-  const leftBlink = blinkFromOpenness(mirror ? face.eyeR : face.eyeL);
-  const rightBlink = blinkFromOpenness(mirror ? face.eyeL : face.eyeR);
+  const wink = enhanceWink(
+    blinkFromOpenness(mirror ? face.eyeR : face.eyeL),
+    blinkFromOpenness(mirror ? face.eyeL : face.eyeR),
+  );
   manager.setValue('blink' as VRMExpressionPresetName, 0);
-  manager.setValue('blinkLeft' as VRMExpressionPresetName, leftBlink);
-  manager.setValue('blinkRight' as VRMExpressionPresetName, rightBlink);
+  manager.setValue('blinkLeft' as VRMExpressionPresetName, wink.left);
+  manager.setValue('blinkRight' as VRMExpressionPresetName, wink.right);
 
   const camA = lipsyncFromCamera ? face.mouth.A : 0;
   const camI = lipsyncFromCamera ? face.mouth.I : 0;
@@ -83,6 +86,10 @@ export function applyGaze(vrm: VRM, frame: PoseFrame, mirror: boolean): void {
   manager.setValue('lookDown' as VRMExpressionPresetName, gy > 0 ? Math.min(1, gy) : 0);
 }
 
+// Custom-Expressions (z.B. tongueOut per Hotkey) müssen beim Loslassen wieder auf 0 —
+// deshalb merken wir uns pro VRM, welche Namen wir angefasst haben.
+const touchedCustomExpressions = new WeakMap<VRM, Set<string>>();
+
 export function applyExpression(vrm: VRM, frame: PoseFrame): void {
   const manager = vrm.expressionManager;
   if (!manager) return;
@@ -90,6 +97,21 @@ export function applyExpression(vrm: VRM, frame: PoseFrame): void {
   for (const preset of EXPRESSION_PRESETS) {
     const isTarget = target?.name === preset;
     manager.setValue(preset, isTarget ? clamp01(target.weight) : 0);
+  }
+
+  let touched = touchedCustomExpressions.get(vrm);
+  if (!touched) {
+    touched = new Set();
+    touchedCustomExpressions.set(vrm, touched);
+  }
+  const isPreset = target ? (EXPRESSION_PRESETS as string[]).includes(target.name) : false;
+  const customTarget = target && !isPreset ? getCapabilities(vrm).resolve(target.name) : null;
+  for (const name of touched) {
+    if (name !== customTarget) manager.setValue(name as VRMExpressionPresetName, 0);
+  }
+  if (customTarget && target) {
+    manager.setValue(customTarget as VRMExpressionPresetName, clamp01(target.weight));
+    touched.add(customTarget);
   }
 }
 

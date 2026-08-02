@@ -7,7 +7,10 @@ import { applyEulerToBone, slerpBoneToQuat } from './vrm-shared';
 const SLERP_SPINE = 0.4;
 const SLERP_ARM = 0.65;
 const SLERP_REST = 0.08;
-const SPINE_DAMPENER = 0.2;
+// 0.2 war zu steif — der Oberkörper soll sichtbar mitgehen. Die Rotation wird
+// zusätzlich auf den Chest-Knochen verteilt (natürlichere Kurve statt Knick).
+const SPINE_DAMPENER = 0.35;
+const CHEST_SHARE = 0.6;
 const ARM_DAMPENER = 1.0;
 const SPINE_DEAD_ZONE = 0.05;
 // Hüfte bewusst gedämpft und träge: sie trägt den ganzen Avatar, Rauschen hier
@@ -39,13 +42,19 @@ export function applyPose(
   const sy = Math.abs(pose.spine.y) < SPINE_DEAD_ZONE ? 0 : pose.spine.y;
   const sz = Math.abs(pose.spine.z) < SPINE_DEAD_ZONE ? 0 : pose.spine.z;
 
+  const spineEuler = {
+    x: sx * SPINE_DAMPENER,
+    y: sy * SPINE_DAMPENER * (mirror ? -1 : 1),
+    z: sz * SPINE_DAMPENER * (mirror ? -1 : 1),
+  };
+  applyEulerToBone(vrm, VRMHumanBoneName.Spine, spineEuler, SLERP_SPINE);
   applyEulerToBone(
     vrm,
-    VRMHumanBoneName.Spine,
+    VRMHumanBoneName.Chest,
     {
-      x: sx * SPINE_DAMPENER,
-      y: sy * SPINE_DAMPENER * (mirror ? -1 : 1),
-      z: sz * SPINE_DAMPENER * (mirror ? -1 : 1),
+      x: spineEuler.x * CHEST_SHARE,
+      y: spineEuler.y * CHEST_SHARE,
+      z: spineEuler.z * CHEST_SHARE,
     },
     SLERP_SPINE,
   );

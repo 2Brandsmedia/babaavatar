@@ -8,6 +8,7 @@ const DEFAULT_HOTKEYS: ExpressionHotkey[] = [
   { id: 'expression-3', accelerator: 'CommandOrControl+3', expressionName: 'sad', label: 'Trauer' },
   { id: 'expression-4', accelerator: 'CommandOrControl+4', expressionName: 'surprised', label: 'Überrascht' },
   { id: 'expression-5', accelerator: 'CommandOrControl+5', expressionName: 'relaxed', label: 'Entspannt' },
+  { id: 'expression-6', accelerator: 'CommandOrControl+6', expressionName: 'tongueOut', label: 'Zunge raus (nur ARKit-Avatare)' },
 ];
 
 export const HotkeyManager = memo(function HotkeyManager(): JSX.Element {
