@@ -18,6 +18,7 @@ export interface VrmControllerOptions {
   handTrackingEnabled: boolean;
   legTrackingEnabled: boolean;
   audioVolume: number;
+  delta: number;
 }
 
 export function applyPoseToVrm(
@@ -29,7 +30,7 @@ export function applyPoseToVrm(
   applyAllBlendShapes(vrm, frame);
   applyGaze(vrm, frame, options.mirror);
   if (options.handTrackingEnabled) {
-    applyPose(vrm, frame, options.mirror, options.legTrackingEnabled);
+    applyPose(vrm, frame, options.mirror, options.legTrackingEnabled, options.delta);
     if (options.armIkEnabled && frame.pose) {
       if (frame.pose.leftArmWorld?.visible) {
         applyArmIK({
@@ -48,9 +49,9 @@ export function applyPoseToVrm(
         });
       }
     }
-    applyHands(vrm, frame);
+    applyHands(vrm, frame, options.delta);
   } else {
-    applyArmRestPose(vrm);
+    applyArmRestPose(vrm, options.delta);
   }
   applyExpression(vrm, frame);
 }

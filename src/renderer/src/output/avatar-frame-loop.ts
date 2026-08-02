@@ -58,6 +58,7 @@ export function runFrame(options: FrameLoopOptions): void {
         handTrackingEnabled: settings?.handTrackingEnabled ?? true,
         legTrackingEnabled: settings?.legTrackingEnabled ?? true,
         audioVolume,
+        delta,
       });
       applyAvatarMicroFollow(loaded.scene, pose);
     } else {

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { VRMHumanBoneName, type VRM } from '@pixiv/three-vrm';
 import type { PoseFrame, Vec3 } from '@shared/types';
 import { REST_LEFT_UPPER_ARM, REST_RIGHT_UPPER_ARM, REST_LOWER_ARM, REST_LEG } from './rest-pose';
-import { applyEulerToBone, slerpBoneToQuat } from './vrm-shared';
+import { applyEulerToBone, dtAlpha, slerpBoneToQuat } from './vrm-shared';
 
 const SLERP_SPINE = 0.4;
 const SLERP_ARM = 0.65;
@@ -28,15 +28,16 @@ export function applyPose(
   frame: PoseFrame,
   mirror: boolean,
   legsEnabled: boolean,
+  delta: number,
 ): void {
   const pose = frame.pose;
   if (!pose) {
-    applyArmRestPose(vrm);
-    applyLegRestPose(vrm);
+    applyArmRestPose(vrm, delta);
+    applyLegRestPose(vrm, delta);
     return;
   }
 
-  applyHips(vrm, pose.hipsRotation, mirror);
+  applyHips(vrm, pose.hipsRotation, mirror, delta);
 
   const sx = Math.abs(pose.spine.x) < SPINE_DEAD_ZONE ? 0 : pose.spine.x;
   const sy = Math.abs(pose.spine.y) < SPINE_DEAD_ZONE ? 0 : pose.spine.y;
@@ -47,7 +48,7 @@ export function applyPose(
     y: sy * SPINE_DAMPENER * (mirror ? -1 : 1),
     z: sz * SPINE_DAMPENER * (mirror ? -1 : 1),
   };
-  applyEulerToBone(vrm, VRMHumanBoneName.Spine, spineEuler, SLERP_SPINE);
+  applyEulerToBone(vrm, VRMHumanBoneName.Spine, spineEuler, dtAlpha(SLERP_SPINE, delta));
   applyEulerToBone(
     vrm,
     VRMHumanBoneName.Chest,
@@ -56,7 +57,7 @@ export function applyPose(
       y: spineEuler.y * CHEST_SHARE,
       z: spineEuler.z * CHEST_SHARE,
     },
-    SLERP_SPINE,
+    dtAlpha(SLERP_SPINE, delta),
   );
 
   applyArm(
@@ -67,6 +68,7 @@ export function applyPose(
     VRMHumanBoneName.LeftUpperArm,
     VRMHumanBoneName.LeftLowerArm,
     REST_LEFT_UPPER_ARM,
+    delta,
   );
   applyArm(
     vrm,
@@ -76,6 +78,7 @@ export function applyPose(
     VRMHumanBoneName.RightUpperArm,
     VRMHumanBoneName.RightLowerArm,
     REST_RIGHT_UPPER_ARM,
+    delta,
   );
 
   if (legsEnabled) {
@@ -86,6 +89,7 @@ export function applyPose(
       pose.legsVisible.left,
       VRMHumanBoneName.LeftUpperLeg,
       VRMHumanBoneName.LeftLowerLeg,
+      delta,
     );
     applyLeg(
       vrm,
@@ -94,13 +98,14 @@ export function applyPose(
       pose.legsVisible.right,
       VRMHumanBoneName.RightUpperLeg,
       VRMHumanBoneName.RightLowerLeg,
+      delta,
     );
   } else {
-    applyLegRestPose(vrm);
+    applyLegRestPose(vrm, delta);
   }
 }
 
-function applyHips(vrm: VRM, rotation: Vec3, mirror: boolean): void {
+function applyHips(vrm: VRM, rotation: Vec3, mirror: boolean, delta: number): void {
   const hx = Math.abs(rotation.x) < HIPS_DEAD_ZONE ? 0 : rotation.x;
   const hy = Math.abs(rotation.y) < HIPS_DEAD_ZONE ? 0 : rotation.y;
   const hz = Math.abs(rotation.z) < HIPS_DEAD_ZONE ? 0 : rotation.z;
@@ -112,7 +117,7 @@ function applyHips(vrm: VRM, rotation: Vec3, mirror: boolean): void {
       y: hy * HIPS_DAMPENER * (mirror ? -1 : 1),
       z: hz * HIPS_DAMPENER * (mirror ? -1 : 1),
     },
-    SLERP_HIPS,
+    dtAlpha(SLERP_HIPS, delta),
   );
 }
 
@@ -123,14 +128,15 @@ function applyLeg(
   visible: boolean,
   upperBoneName: VRMHumanBoneName,
   lowerBoneName: VRMHumanBoneName,
+  delta: number,
 ): void {
   if (!visible || !upper || !lower) {
-    slerpBoneToQuat(vrm, upperBoneName, REST_LEG, SLERP_REST);
-    slerpBoneToQuat(vrm, lowerBoneName, REST_LEG, SLERP_REST);
+    slerpBoneToQuat(vrm, upperBoneName, REST_LEG, dtAlpha(SLERP_REST, delta));
+    slerpBoneToQuat(vrm, lowerBoneName, REST_LEG, dtAlpha(SLERP_REST, delta));
     return;
   }
-  applyEulerToBone(vrm, upperBoneName, clampLegEuler(upper), SLERP_LEG);
-  applyEulerToBone(vrm, lowerBoneName, clampLegEuler(lower), SLERP_LEG);
+  applyEulerToBone(vrm, upperBoneName, clampLegEuler(upper), dtAlpha(SLERP_LEG, delta));
+  applyEulerToBone(vrm, lowerBoneName, clampLegEuler(lower), dtAlpha(SLERP_LEG, delta));
 }
 
 function clampLegEuler(euler: Vec3): Vec3 {
@@ -141,11 +147,12 @@ function clampLegEuler(euler: Vec3): Vec3 {
   };
 }
 
-export function applyLegRestPose(vrm: VRM): void {
-  slerpBoneToQuat(vrm, VRMHumanBoneName.LeftUpperLeg, REST_LEG, SLERP_REST);
-  slerpBoneToQuat(vrm, VRMHumanBoneName.RightUpperLeg, REST_LEG, SLERP_REST);
-  slerpBoneToQuat(vrm, VRMHumanBoneName.LeftLowerLeg, REST_LEG, SLERP_REST);
-  slerpBoneToQuat(vrm, VRMHumanBoneName.RightLowerLeg, REST_LEG, SLERP_REST);
+export function applyLegRestPose(vrm: VRM, delta = 1 / 60): void {
+  const a = dtAlpha(SLERP_REST, delta);
+  slerpBoneToQuat(vrm, VRMHumanBoneName.LeftUpperLeg, REST_LEG, a);
+  slerpBoneToQuat(vrm, VRMHumanBoneName.RightUpperLeg, REST_LEG, a);
+  slerpBoneToQuat(vrm, VRMHumanBoneName.LeftLowerLeg, REST_LEG, a);
+  slerpBoneToQuat(vrm, VRMHumanBoneName.RightLowerLeg, REST_LEG, a);
 }
 
 function applyArm(
@@ -156,29 +163,31 @@ function applyArm(
   upperBoneName: VRMHumanBoneName,
   lowerBoneName: VRMHumanBoneName,
   restUpper: THREE.Quaternion,
+  delta: number,
 ): void {
   if (!visible) {
-    slerpBoneToQuat(vrm, upperBoneName, restUpper, SLERP_REST);
-    slerpBoneToQuat(vrm, lowerBoneName, REST_LOWER_ARM, SLERP_REST);
+    slerpBoneToQuat(vrm, upperBoneName, restUpper, dtAlpha(SLERP_REST, delta));
+    slerpBoneToQuat(vrm, lowerBoneName, REST_LOWER_ARM, dtAlpha(SLERP_REST, delta));
     return;
   }
   applyEulerToBone(
     vrm,
     upperBoneName,
     { x: upper.x * ARM_DAMPENER, y: upper.y * ARM_DAMPENER, z: upper.z * ARM_DAMPENER },
-    SLERP_ARM,
+    dtAlpha(SLERP_ARM, delta),
   );
   applyEulerToBone(
     vrm,
     lowerBoneName,
     { x: lower.x * ARM_DAMPENER, y: lower.y * ARM_DAMPENER, z: lower.z * ARM_DAMPENER },
-    SLERP_ARM,
+    dtAlpha(SLERP_ARM, delta),
   );
 }
 
-export function applyArmRestPose(vrm: VRM): void {
-  slerpBoneToQuat(vrm, VRMHumanBoneName.LeftUpperArm, REST_LEFT_UPPER_ARM, SLERP_REST);
-  slerpBoneToQuat(vrm, VRMHumanBoneName.RightUpperArm, REST_RIGHT_UPPER_ARM, SLERP_REST);
-  slerpBoneToQuat(vrm, VRMHumanBoneName.LeftLowerArm, REST_LOWER_ARM, SLERP_REST);
-  slerpBoneToQuat(vrm, VRMHumanBoneName.RightLowerArm, REST_LOWER_ARM, SLERP_REST);
+export function applyArmRestPose(vrm: VRM, delta = 1 / 60): void {
+  const a = dtAlpha(SLERP_REST, delta);
+  slerpBoneToQuat(vrm, VRMHumanBoneName.LeftUpperArm, REST_LEFT_UPPER_ARM, a);
+  slerpBoneToQuat(vrm, VRMHumanBoneName.RightUpperArm, REST_RIGHT_UPPER_ARM, a);
+  slerpBoneToQuat(vrm, VRMHumanBoneName.LeftLowerArm, REST_LOWER_ARM, a);
+  slerpBoneToQuat(vrm, VRMHumanBoneName.RightLowerArm, REST_LOWER_ARM, a);
 }

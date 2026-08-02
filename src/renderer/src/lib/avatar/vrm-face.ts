@@ -1,6 +1,6 @@
 import { VRMHumanBoneName, type VRM, type VRMExpressionPresetName } from '@pixiv/three-vrm';
 import type { PoseFrame } from '@shared/types';
-import { applyEulerToBone, clamp01 } from './vrm-shared';
+import { applyEulerToBone, clamp01, dtAlpha } from './vrm-shared';
 import { enhanceWink, getCapabilities } from './vrm-blendshape';
 
 const SLERP_HEAD = 0.5;
@@ -20,6 +20,7 @@ export interface FaceApplyOptions {
   lipsyncFromCamera: boolean;
   lipsyncFromMic: boolean;
   audioVolume: number;
+  delta: number;
 }
 
 export function applyFace(vrm: VRM, frame: PoseFrame, options: FaceApplyOptions): void {
@@ -34,7 +35,7 @@ export function applyFace(vrm: VRM, frame: PoseFrame, options: FaceApplyOptions)
       y: face.head.y * HEAD_DAMPENER * (mirror ? -1 : 1),
       z: face.head.z * HEAD_DAMPENER * (mirror ? -1 : 1),
     },
-    SLERP_HEAD,
+    dtAlpha(SLERP_HEAD, options.delta),
   );
   const manager = vrm.expressionManager;
   if (!manager) return;

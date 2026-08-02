@@ -75,17 +75,41 @@ export class PoseSmoother {
     };
   }
 
+  // Richtungsvektor-Filterung statt Positions-Filterung: Es wird nur die RICHTUNG
+  // Schulter→Ellbogen bzw. Ellbogen→Handgelenk geglättet und der Punkt mit der
+  // ORIGINAL-Länge rekonstruiert. Effekt: Gliedmaßenlängen bleiben exakt konstant —
+  // kein „Gummiarm" mehr, wenn die Filter der drei Punkte auseinanderlaufen.
   private smoothArmWorld(
     prefix: string,
     arm: ArmWorldPoints | null,
     t: number,
   ): ArmWorldPoints | null {
     if (!arm) return null;
+    const shoulder = this.smoothVec(`${prefix}S`, arm.shoulder, t);
+    const elbow = this.reconstructAlongDirection(`${prefix}E`, shoulder, arm.shoulder, arm.elbow, t);
+    const wrist = this.reconstructAlongDirection(`${prefix}W`, elbow, arm.elbow, arm.wrist, t);
+    return { shoulder, elbow, wrist, visible: arm.visible };
+  }
+
+  private reconstructAlongDirection(
+    key: string,
+    smoothedOrigin: Vec3,
+    rawOrigin: Vec3,
+    rawTarget: Vec3,
+    t: number,
+  ): Vec3 {
+    const dx = rawTarget.x - rawOrigin.x;
+    const dy = rawTarget.y - rawOrigin.y;
+    const dz = rawTarget.z - rawOrigin.z;
+    const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (length < 1e-6) return { ...smoothedOrigin };
+    const dir = this.smoothVec(`${key}.dir`, { x: dx / length, y: dy / length, z: dz / length }, t);
+    const dirLength = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+    if (dirLength < 1e-6) return { ...smoothedOrigin };
     return {
-      shoulder: this.smoothVec(`${prefix}S`, arm.shoulder, t),
-      elbow: this.smoothVec(`${prefix}E`, arm.elbow, t),
-      wrist: this.smoothVec(`${prefix}W`, arm.wrist, t),
-      visible: arm.visible,
+      x: smoothedOrigin.x + (dir.x / dirLength) * length,
+      y: smoothedOrigin.y + (dir.y / dirLength) * length,
+      z: smoothedOrigin.z + (dir.z / dirLength) * length,
     };
   }
 

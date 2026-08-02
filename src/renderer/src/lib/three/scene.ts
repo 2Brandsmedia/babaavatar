@@ -31,15 +31,25 @@ export function createScene({ canvas, background, width, height }: CreateSceneOp
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(width, height, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  // Filmisches Tone-Mapping statt rohem Clipping — hellere Hauttöne laufen weich
+  // aus statt auszubrennen; der größte Einzelgewinn für „sieht echt aus".
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
-  scene.add(ambient);
+  // Drei-Punkt-Licht mit Himmel/Boden-Verlauf statt flachem Ambient:
+  // Hemisphere gibt weiche Verläufe auf Haut/Stoff, Key/Rim modellieren die Form.
+  const hemisphere = new THREE.HemisphereLight(0xffffff, 0x8a8a95, 0.75);
+  scene.add(hemisphere);
 
-  const directional = new THREE.DirectionalLight(0xffffff, 1.2);
+  const directional = new THREE.DirectionalLight(0xfff4e6, 1.35);
   directional.position.set(1.2, 2.4, 1.6);
   scene.add(directional);
 
-  const rim = new THREE.DirectionalLight(0xa0c8ff, 0.6);
+  const fill = new THREE.DirectionalLight(0xdfe8ff, 0.45);
+  fill.position.set(-1.8, 1.0, 2.0);
+  scene.add(fill);
+
+  const rim = new THREE.DirectionalLight(0xa0c8ff, 0.7);
   rim.position.set(-1.5, 1.2, -1.2);
   scene.add(rim);
 
