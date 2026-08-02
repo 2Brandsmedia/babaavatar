@@ -19,11 +19,13 @@ Tracker" von VTube Studio.
    (Übersicht aller GPU-Generationen: <https://www.nvidia.com/en-us/geforce/broadcasting/broadcast-sdk/resources/>)
 2. **ExpressionApp.exe** besorgen — NVIDIA liefert sie nicht als fertiges Binary (GitHub-Repo
    ist Quellcode zum Selberbauen). Der einfache Weg ist das kostenlose Steam-DLC:
-   Steam → **VTube Studio** (kostenlos) installieren → DLC **„VTube Studio – NVIDIA Broadcast
-   Tracker"** (kostenlos) dazu installieren → danach im VTube-Studio-Ordner nach
-   `ExpressionApp.exe` suchen (typisch `…\Steam\steamapps\common\VTube Studio\`,
-   Unterordner des NVIDIA-Trackers). Alternativ selbst bauen:
-   <https://github.com/NVIDIA-Maxine/Maxine-AR-SDK> (Visual Studio + CMake).
+   Steam → **VTube Studio** (kostenlos) installieren → Bibliothek → Rechtsklick auf VTube
+   Studio → **Eigenschaften → Reiter „DLC"** → Häkchen bei **„NVIDIA Broadcast Tracker"**
+   setzen (~2 GB Download; taucht das DLC dort nicht auf, vorher auf der Shop-Seite
+   <https://store.steampowered.com/app/2178540/> zum Konto hinzufügen). Danach liegt die App
+   unter `…\Steam\steamapps\common\VTube Studio\MXTracker\ExpressionApp.exe`.
+   Alternativ selbst bauen: <https://github.com/NVIDIA-Maxine/Maxine-AR-SDK>
+   (Visual Studio + CMake).
 3. In BabaAvatar: **Einstellungen → Tracking → Tracking-Engine: „NVIDIA Broadcast (RTX-GPU)"**
    → „ExpressionApp.exe wählen…" → Pfad setzen → „Kameras suchen" → Kamera + Modus wählen.
    Die App startet den Sidecar automatisch und empfängt die Daten per UDP (Port 9140, nur
