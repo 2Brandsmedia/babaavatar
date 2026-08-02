@@ -8,10 +8,18 @@ export class OneEuroFilter {
   private state: OneEuroState | null = null;
 
   constructor(
-    private readonly minCutoff = 1.0,
-    private readonly beta = 0.05,
+    private minCutoff = 1.0,
+    private beta = 0.05,
     private readonly dCutoff = 1.0,
   ) {}
+
+  // Confidence-adaptive Filterung: Die Parameter dürfen pro Frame nachgestellt
+  // werden (sicheres Glied → reaktiv, unsicheres → träge), der Filterzustand
+  // bleibt dabei erhalten.
+  setParams(minCutoff: number, beta: number): void {
+    this.minCutoff = minCutoff;
+    this.beta = beta;
+  }
 
   filter(value: number, timestamp: number): number {
     if (!this.state) {

@@ -1,6 +1,10 @@
 import type { ArmWorldPoints, HandRig, HandsRig, PoseFrame, Vec3 } from '@shared/types';
 import { OneEuroFilter } from './smoother';
 
+// Confidence-adaptive Spanne: sicheres Glied (1.0) filtert mit dem vollen minCutoff
+// (reaktiv), unsicheres (0.0) fällt auf einen trägen Filter zurück, der Zittern schluckt.
+const ADAPTIVE_MIN = 0.6;
+
 export class PoseSmoother {
   private filters = new Map<string, OneEuroFilter>();
 
@@ -8,6 +12,12 @@ export class PoseSmoother {
     private readonly minCutoff = 4.0,
     private readonly beta = 0.05,
   ) {}
+
+  private adaptiveParams(confidence: number): { minCutoff: number; beta: number } {
+    const c = Math.max(0, Math.min(1, confidence));
+    const minCutoff = ADAPTIVE_MIN + (this.minCutoff - ADAPTIVE_MIN) * c;
+    return { minCutoff, beta: this.beta * (0.3 + 0.7 * c) };
+  }
 
   smooth(frame: PoseFrame): PoseFrame {
     const t = frame.timestamp;
@@ -36,21 +46,23 @@ export class PoseSmoother {
       pose: frame.pose
         ? {
             spine: this.smoothVec('spine', frame.pose.spine, t),
-            leftUpperArm: this.smoothVec('lUp', frame.pose.leftUpperArm, t),
-            leftLowerArm: this.smoothVec('lLo', frame.pose.leftLowerArm, t),
-            rightUpperArm: this.smoothVec('rUp', frame.pose.rightUpperArm, t),
-            rightLowerArm: this.smoothVec('rLo', frame.pose.rightLowerArm, t),
+            leftUpperArm: this.smoothVec('lUp', frame.pose.leftUpperArm, t, frame.pose.armConfidence.left),
+            leftLowerArm: this.smoothVec('lLo', frame.pose.leftLowerArm, t, frame.pose.armConfidence.left),
+            rightUpperArm: this.smoothVec('rUp', frame.pose.rightUpperArm, t, frame.pose.armConfidence.right),
+            rightLowerArm: this.smoothVec('rLo', frame.pose.rightLowerArm, t, frame.pose.armConfidence.right),
             hipsPosition: this.smoothVec('hipsPos', frame.pose.hipsPosition, t),
             hipsWorldPosition: this.smoothVec('hipsWorldPos', frame.pose.hipsWorldPosition, t),
             hipsRotation: this.smoothVec('hipsRot', frame.pose.hipsRotation, t),
             armsVisible: frame.pose.armsVisible,
-            leftArmWorld: this.smoothArmWorld('lArmW', frame.pose.leftArmWorld, t),
-            rightArmWorld: this.smoothArmWorld('rArmW', frame.pose.rightArmWorld, t),
-            leftUpperLeg: this.smoothNullableVec('lUpLeg', frame.pose.leftUpperLeg, t),
-            leftLowerLeg: this.smoothNullableVec('lLoLeg', frame.pose.leftLowerLeg, t),
-            rightUpperLeg: this.smoothNullableVec('rUpLeg', frame.pose.rightUpperLeg, t),
-            rightLowerLeg: this.smoothNullableVec('rLoLeg', frame.pose.rightLowerLeg, t),
+            leftArmWorld: this.smoothArmWorld('lArmW', frame.pose.leftArmWorld, t, frame.pose.armConfidence.left),
+            rightArmWorld: this.smoothArmWorld('rArmW', frame.pose.rightArmWorld, t, frame.pose.armConfidence.right),
+            leftUpperLeg: this.smoothNullableVec('lUpLeg', frame.pose.leftUpperLeg, t, frame.pose.legConfidence.left),
+            leftLowerLeg: this.smoothNullableVec('lLoLeg', frame.pose.leftLowerLeg, t, frame.pose.legConfidence.left),
+            rightUpperLeg: this.smoothNullableVec('rUpLeg', frame.pose.rightUpperLeg, t, frame.pose.legConfidence.right),
+            rightLowerLeg: this.smoothNullableVec('rLoLeg', frame.pose.rightLowerLeg, t, frame.pose.legConfidence.right),
             legsVisible: frame.pose.legsVisible,
+            armConfidence: frame.pose.armConfidence,
+            legConfidence: frame.pose.legConfidence,
           }
         : null,
       faceMetrics: frame.faceMetrics
@@ -83,11 +95,26 @@ export class PoseSmoother {
     prefix: string,
     arm: ArmWorldPoints | null,
     t: number,
+    confidence?: number,
   ): ArmWorldPoints | null {
     if (!arm) return null;
-    const shoulder = this.smoothVec(`${prefix}S`, arm.shoulder, t);
-    const elbow = this.reconstructAlongDirection(`${prefix}E`, shoulder, arm.shoulder, arm.elbow, t);
-    const wrist = this.reconstructAlongDirection(`${prefix}W`, elbow, arm.elbow, arm.wrist, t);
+    const shoulder = this.smoothVec(`${prefix}S`, arm.shoulder, t, confidence);
+    const elbow = this.reconstructAlongDirection(
+      `${prefix}E`,
+      shoulder,
+      arm.shoulder,
+      arm.elbow,
+      t,
+      confidence,
+    );
+    const wrist = this.reconstructAlongDirection(
+      `${prefix}W`,
+      elbow,
+      arm.elbow,
+      arm.wrist,
+      t,
+      confidence,
+    );
     return { shoulder, elbow, wrist, visible: arm.visible };
   }
 
@@ -97,13 +124,19 @@ export class PoseSmoother {
     rawOrigin: Vec3,
     rawTarget: Vec3,
     t: number,
+    confidence?: number,
   ): Vec3 {
     const dx = rawTarget.x - rawOrigin.x;
     const dy = rawTarget.y - rawOrigin.y;
     const dz = rawTarget.z - rawOrigin.z;
     const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (length < 1e-6) return { ...smoothedOrigin };
-    const dir = this.smoothVec(`${key}.dir`, { x: dx / length, y: dy / length, z: dz / length }, t);
+    const dir = this.smoothVec(
+      `${key}.dir`,
+      { x: dx / length, y: dy / length, z: dz / length },
+      t,
+      confidence,
+    );
     const dirLength = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
     if (dirLength < 1e-6) return { ...smoothedOrigin };
     return {
@@ -152,24 +185,33 @@ export class PoseSmoother {
     };
   }
 
-  private smoothNullableVec(key: string, vec: Vec3 | null, t: number): Vec3 | null {
+  private smoothNullableVec(
+    key: string,
+    vec: Vec3 | null,
+    t: number,
+    confidence?: number,
+  ): Vec3 | null {
     if (!vec) return null;
-    return this.smoothVec(key, vec, t);
+    return this.smoothVec(key, vec, t, confidence);
   }
 
-  private smoothVec(key: string, vec: Vec3, t: number): Vec3 {
+  private smoothVec(key: string, vec: Vec3, t: number, confidence?: number): Vec3 {
     return {
-      x: this.filterScalar(`${key}.x`, vec.x, t),
-      y: this.filterScalar(`${key}.y`, vec.y, t),
-      z: this.filterScalar(`${key}.z`, vec.z, t),
+      x: this.filterScalar(`${key}.x`, vec.x, t, confidence),
+      y: this.filterScalar(`${key}.y`, vec.y, t, confidence),
+      z: this.filterScalar(`${key}.z`, vec.z, t, confidence),
     };
   }
 
-  private filterScalar(key: string, value: number, timestamp: number): number {
+  private filterScalar(key: string, value: number, timestamp: number, confidence?: number): number {
     let filter = this.filters.get(key);
     if (!filter) {
       filter = new OneEuroFilter(this.minCutoff, this.beta);
       this.filters.set(key, filter);
+    }
+    if (typeof confidence === 'number') {
+      const params = this.adaptiveParams(confidence);
+      filter.setParams(params.minCutoff, params.beta);
     }
     return filter.filter(value, timestamp);
   }

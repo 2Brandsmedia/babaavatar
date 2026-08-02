@@ -49,6 +49,8 @@ export function solvePose(
       left: legGateLeft.update(legsRaw.left, now),
       right: legGateRight.update(legsRaw.right, now),
     };
+    const armConfidence = computeLimbConfidence(landmarks2d, [11, 13, 15], [12, 14, 16], mirror);
+    const legConfidence = computeLimbConfidence(landmarks2d, [23, 25, 27], [24, 26, 28], mirror);
 
     const leftUpper = mirror ? solved.RightUpperArm : solved.LeftUpperArm;
     const leftLower = mirror ? solved.RightLowerArm : solved.LeftLowerArm;
@@ -85,6 +87,8 @@ export function solvePose(
       rightUpperLeg: legVec(mirror ? solved.LeftUpperLeg : solved.RightUpperLeg),
       rightLowerLeg: legVec(mirror ? solved.LeftLowerLeg : solved.RightLowerLeg),
       legsVisible,
+      armConfidence,
+      legConfidence,
     };
   } catch (err) {
     log.warn('Pose-Solver fehlgeschlagen', err);
@@ -138,6 +142,30 @@ function mpToThree(lm: { x?: number; y?: number; z?: number }, mirror: boolean):
     x: mirror ? -x : x,
     y: -y,
     z: -z,
+  };
+}
+
+// Mittlere Sichtbarkeit der Kette (z.B. Schulter+Ellbogen+Handgelenk) als 0..1 —
+// gewichtet zugunsten der körpernahen Punkte, weil die stabiler erkannt werden.
+function computeLimbConfidence(
+  landmarks: ReadonlyArray<{ visibility?: number }>,
+  camLeftIndices: readonly number[],
+  camRightIndices: readonly number[],
+  mirror: boolean,
+): { left: number; right: number } {
+  const weights = [0.5, 0.3, 0.2] as const;
+  const avg = (indices: readonly number[]): number => {
+    let sum = 0;
+    for (const [i, idx] of indices.entries()) {
+      sum += (landmarks[idx]?.visibility ?? 0) * (weights[i] ?? 0);
+    }
+    return Math.max(0, Math.min(1, sum));
+  };
+  const camLeft = avg(camLeftIndices);
+  const camRight = avg(camRightIndices);
+  return {
+    left: mirror ? camRight : camLeft,
+    right: mirror ? camLeft : camRight,
   };
 }
 

@@ -169,6 +169,15 @@ export interface PoseRig {
     left: boolean;
     right: boolean;
   };
+  // Kontinuierliche Tracking-Sicherheit 0..1 pro Glied — steuert die adaptive Filterhärte
+  armConfidence: {
+    left: number;
+    right: number;
+  };
+  legConfidence: {
+    left: number;
+    right: number;
+  };
 }
 
 export interface HandFingerRig {
