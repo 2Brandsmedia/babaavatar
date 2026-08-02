@@ -34,7 +34,7 @@ export const OutputWindowSettings = memo(function OutputWindowSettings({
         </button>
       </div>
       <p style={{ fontSize: 12, color: '#52525a', margin: 0 }}>
-        In OBS: "Fenster-Aufnahme" → BabaAvatar Output → Filter "Chroma-Key" mit der eingestellten
+        In OBS: „Fenster-Aufnahme“ → BabaAvatar Output → Filter „Chroma-Key“ mit der eingestellten
         Hintergrundfarbe.
       </p>
     </div>

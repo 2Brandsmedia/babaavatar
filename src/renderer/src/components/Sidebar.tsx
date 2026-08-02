@@ -54,7 +54,7 @@ export const Sidebar = memo(function Sidebar({
             color: '#a0bcff',
           }}
         >
-          <strong>Erster Schritt:</strong> Avatar importieren unter "Avatare".
+          <strong>Erster Schritt:</strong> Avatar importieren unter „Avatare“.
         </div>
       )}
 

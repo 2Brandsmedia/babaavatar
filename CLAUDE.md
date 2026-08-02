@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Eingebauter Browser für die wichtigsten freien VRM-Quellen (VRoid Hub, Booth, Open Source Avatars, Niconi Solid, Live3D). `.vrm`-Downloads werden automatisch in die lokale Library importiert, Lizenz wird ausgelesen und als Ampel angezeigt. VRoid Hub zusätzlich via OAuth-API.
 
-Entwicklung läuft auf **macOS**, Build-Ziele sind **macOS (.dmg) und Windows (.exe)** — derselbe Code, beide Plattformen.
+Entwicklung läuft auf **macOS**, Release-Ziel ist **nur Windows (.exe)** — Entscheidung 2026-08-02. Ziel: Webcam-Tracking so hochtreu, dass man Videos „als andere Figur" (Kreaturen, Tiere, anderer Look) aufnehmen kann. Windows-Qualitäts-Setup (NVIDIA Maxine, FasterLivePortrait, Leap Motion): `docs/windows-setup.md`.
 
 Vollständiger Architektur-Plan: `/Users/fuerte/.claude/plans/willst-du-dich-vorher-silly-rabbit.md`.
 
@@ -23,8 +23,7 @@ npm run lint             # ESLint, 0 Warnings erforderlich
 npm run format           # Prettier
 
 npm run build            # typecheck + electron-vite Production-Build
-npm run build:mac        # → dist/BabaAvatar-<version>.dmg
-npm run build:win        # → dist/BabaAvatar Setup <version>.exe (NSIS, Cross-Build vom Mac geht)
+npm run build:win        # → dist/BabaAvatar-Setup-<version>.exe (NSIS, Cross-Build vom Mac geht)
 npm run preview          # baut + startet die Production-App lokal
 ```
 
@@ -67,6 +66,10 @@ Webcam (getUserMedia, src/renderer/src/lib/tracking/use-webcam.ts)
 
 parallel:
 Mikrofon → AudioWorklet → Meyda Formant-Analyse → Phoneme (A/I/U/E/O) → VRM-Mund
+
+Windows, Engine „nvidia": ExpressionApp.exe (Maxine-Sidecar, src/main/maxine-tracker.ts)
+→ UDP 9140 → VmcSnapshot → IPC VMC_FRAME → vmc-merge überschreibt Face/Kopf im PoseFrame.
+Externe Tracker (VMC/iFacialMocap) laufen über dieselbe Schiene. Details: docs/windows-setup.md
 ```
 
 MediaPipe nutzt GPU via WebGL (`delegate: 'GPU'`). WASM-Module und Modelle werden zur Laufzeit von der Google-CDN nachgeladen (`tasks-vision@0.10.18`). Falls Offline-Distribution gewünscht, müssen WASM + `.task`-Files in `resources/` gebundlet und der `WASM_URL` umgestellt werden.
@@ -137,6 +140,8 @@ src/main/
 ├── download-handler.ts   # session.on('will-download') → .vrm-Interception
 ├── profiles.ts           # Filesystem-CRUD für AvatarProfile (Kalibrierung)
 ├── hotkeys.ts            # globalShortcut Manager
+├── maxine-tracker.ts     # NVIDIA-Maxine-Sidecar (spawnt ExpressionApp.exe, UDP→VmcSnapshot)
+├── recordings.ts         # Video-Aufnahmen speichern (userData/recordings/)
 ├── vroid-api.ts          # OAuth + Pixiv-API-Client
 ├── asset-protocol.ts     # babaavatar-asset:// Protokoll für Avatar-Dateien
 └── logger.ts             # Strukturiertes JSON-Logging in userData/logs/
@@ -194,6 +199,7 @@ src/renderer/src/
 | `userData/profiles/<avatar-id>.json` | Kalibrierungs-Profile pro Avatar |
 | `userData/downloads/` | Temporäre Download-Puffer für Avatar-Browser |
 | `userData/logs/babaavatar-<datum>.log` | Strukturiertes JSON-Log |
+| `userData/recordings/` | In-App-Videoaufnahmen (WebM, Statusleiste „● Aufnahme") |
 
 ## Plattform-Hinweise
 
@@ -202,7 +208,11 @@ src/renderer/src/
 - **Single-Instance-Lock** in `src/main/index.ts` — zweite Instanz fokussiert die laufende.
 - **GPU-Erwartung**: Ziel ist eine RTX 4090. Auf schwächeren GPUs `cameraFps` in den Settings auf 30 setzen.
 
-## Aktueller Status (2026-05-16)
+## Aktueller Status (2026-08-02)
+
+Seit dem 13-Phasen-Grundausbau dazugekommen: externe Tracker (VMC/iFacialMocap-UDP-Server),
+Gesten-Erkennung, Auto-Updater, **NVIDIA-Maxine-Sidecar** (Engine „nvidia", Windows),
+**In-App-Videoaufnahme**, Kreaturen-Avatare in der kuratierten Liste, Windows-only-Build.
 
 **Alle 13 Phasen implementiert** und Build läuft sauber durch:
 
@@ -223,10 +233,12 @@ src/renderer/src/
 **Was getestet ist**: `npm run typecheck` und `npm run build` laufen ohne Fehler. Bundle-Größen: Main 32 kB, Preload 3.7 kB, Renderer Control 281 kB, Output 1.47 MB (Three.js + VRM).
 
 **Was noch fehlt** (V2-Backlog):
-- Twitch-Chat-Integration, OSC-Output, Spout/NDI (V1: nur Chroma-Key)
+- Twitch-Chat-Integration, OSC-Output, Spout/NDI (V1: nur Chroma-Key + In-App-Aufnahme)
 - Hintergrund-Bilder/Videos
-- Auto-Updater
 - Code-Signing für Windows-Production-Builds
-- iPhone-FaceID-Companion
-- Echte MediaPipe-Frame-Capture in den Kalibrierungs-Schritten (aktuell als Stubs mit "Wert übernehmen"-Buttons — die echte Pipeline wäre, im Wizard direkt auf den `pose-channel` zu abonnieren und den letzten Wert pro Step zu speichern)
-- Echtes Hand-Gesten-Triggering für Expressions (Hand-Landmarks sind erfasst, aber die Geste→Expression-Mapping-Logik fehlt noch)
+- Leap-Motion-2-Anbindung (LeapC-Sidecar auf die VmcSnapshot-Schiene)
+- Maxine-Kopfrotation auf Windows verifizieren (Quaternion-Vorzeichen, s. docs/windows-setup.md)
+- Echte MediaPipe-Frame-Capture in den Kalibrierungs-Schritten (aktuell Stubs mit „Wert übernehmen")
+
+## „Grün ≠ fertig" — Definition of Done (Volltext global: ~/.claude/CLAUDE.md §0.1)
+Vor „fertig" sichtbar abhaken, nicht nachgelagert roasten: (1) **Observability steht** (Health-Endpoint mit echtem DB-Ping, strukturierter Logger mit Request-ID, Error-Tracking angebunden, Container-HEALTHCHECK). (2) **Tests für die Risiko-Pfade existieren** (Job-Queue/Worker inkl. Crash-Recovery, jede Lösch-/Reset-Operation, zentrale Schreibpfade/Idempotenz). (3) **Edge-Case-Frage bei jeder mutierenden/löschenden Aktion** (parallele Verarbeitung auf denselben Daten? Crash-Recovery? FK-Folgen?). Grünes CI beweist nur die getestete Fehlerklasse, nicht Observability/Logik/Resilience.

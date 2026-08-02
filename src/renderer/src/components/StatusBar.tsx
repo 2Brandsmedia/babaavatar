@@ -4,6 +4,10 @@ import { useTrackingStore } from '@renderer/store/tracking';
 import { useSettingsStore } from '@renderer/store/settings';
 import { api } from '@renderer/lib/ipc/api';
 import { subscribeVmcFrames } from '@renderer/lib/tracking/vmc-channel';
+import {
+  createRecordingChannel,
+  type RecordingState,
+} from '@renderer/lib/broadcast/recording-channel';
 
 interface StatusBarProps {
   activeAvatar: AvatarRecord | null;
@@ -69,8 +73,58 @@ export const StatusBar = memo(function StatusBar({ activeAvatar }: StatusBarProp
         <button type="button" onClick={() => void api.output.open()}>
           Output zeigen
         </button>
+        <RecordButton />
       </div>
     </div>
+  );
+});
+
+const RecordButton = memo(function RecordButton(): JSX.Element {
+  const [state, setState] = useState<RecordingState | null>(null);
+
+  useEffect(() => {
+    const channel = createRecordingChannel();
+    const unsubscribe = channel.subscribe(setState);
+    return () => {
+      unsubscribe();
+      channel.close();
+    };
+  }, []);
+
+  const recording = state?.recording ?? false;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => void api.recording.toggle()}
+        aria-label={recording ? 'Aufnahme stoppen' : 'Aufnahme starten'}
+        style={{
+          background: recording ? '#3b1c1c' : '#1c1c22',
+          border: `1px solid ${recording ? '#ff5050' : '#2a2a32'}`,
+          color: recording ? '#ff5050' : '#a0a0a8',
+          fontSize: 11,
+          padding: '4px 10px',
+          fontWeight: recording ? 700 : 400,
+        }}
+      >
+        {recording ? '■ Stopp' : '● Aufnahme'}
+      </button>
+      <button
+        type="button"
+        onClick={() => void api.recording.openFolder()}
+        aria-label="Aufnahme-Ordner öffnen"
+        style={{
+          background: '#1c1c22',
+          border: '1px solid #2a2a32',
+          color: '#a0a0a8',
+          fontSize: 11,
+          padding: '4px 10px',
+        }}
+      >
+        Aufnahmen
+      </button>
+    </>
   );
 });
 

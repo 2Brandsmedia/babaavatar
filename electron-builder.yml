@@ -16,20 +16,8 @@ asar: true
 asarUnpack:
   - node_modules/electron-updater/**/*
 
-mac:
-  category: public.app-category.video
-  target:
-    - target: dmg
-      arch:
-        - arm64
-        - x64
-  icon: resources/icon.png
-  hardenedRuntime: false
-  gatekeeperAssess: false
-  extendInfo:
-    NSCameraUsageDescription: 'BabaAvatar braucht Zugriff auf die Kamera für das Gesichts-Tracking.'
-    NSMicrophoneUsageDescription: 'BabaAvatar braucht Zugriff auf das Mikrofon für Lipsync.'
-
+# Windows-only seit 2026-08-02 (Entscheidung Baba): Mac ist reine Dev-Umgebung (npm run dev),
+# es gibt keinen Mac-Release-Build mehr. Native NVIDIA-Pfade (Maxine) sind Windows-exklusiv.
 win:
   target:
     - target: nsis

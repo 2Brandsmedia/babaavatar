@@ -5,6 +5,8 @@ import type {
   AvatarProfile,
   AvatarRecord,
   ExpressionHotkey,
+  MaxineCamera,
+  MaxineStatus,
   TrackerProtocol,
   VrmLicense,
 } from '../shared/types.js';
@@ -63,6 +65,22 @@ const api = {
     status: (): Promise<{ running: boolean; port: number | null; lastMessageAt: number }> =>
       ipcRenderer.invoke(IPC.VMC_STATUS),
     localIps: (): Promise<string[]> => ipcRenderer.invoke(IPC.VMC_LOCAL_IPS),
+  },
+
+  maxine: {
+    start: (): Promise<MaxineStatus> => ipcRenderer.invoke(IPC.MAXINE_START),
+    stop: (): Promise<MaxineStatus> => ipcRenderer.invoke(IPC.MAXINE_STOP),
+    status: (): Promise<MaxineStatus> => ipcRenderer.invoke(IPC.MAXINE_STATUS),
+    listCameras: (): Promise<MaxineCamera[]> => ipcRenderer.invoke(IPC.MAXINE_LIST_CAMERAS),
+    calibrate: (): Promise<boolean> => ipcRenderer.invoke(IPC.MAXINE_CALIBRATE),
+    pickExe: (): Promise<string | null> => ipcRenderer.invoke(IPC.MAXINE_PICK_EXE),
+  },
+
+  recording: {
+    save: (payload: { buffer: ArrayBuffer; mimeType: string }): Promise<{ filePath: string; bytes: number }> =>
+      ipcRenderer.invoke(IPC.RECORDING_SAVE, payload),
+    toggle: (): Promise<void> => ipcRenderer.invoke(IPC.RECORDING_TOGGLE),
+    openFolder: (): Promise<void> => ipcRenderer.invoke(IPC.RECORDING_OPEN_FOLDER),
   },
 
   updater: {

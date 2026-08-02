@@ -10,6 +10,7 @@ import {
   buildAudioPhonemes,
   buildVmcOnlyFrame,
   enrichTrackingFrame,
+  isExternalFaceActive,
 } from '@renderer/lib/tracking/pose-enricher';
 import { api } from '@renderer/lib/ipc/api';
 import type { VmcSnapshot } from '@shared/types';
@@ -78,7 +79,25 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
       void api.vmc.stop().catch(() => undefined);
       vmcSnapshotRef.current = null;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bewusst nur die Server-relevanten Keys, nicht das ganze settings-Objekt
   }, [settings?.vmcEnabled, settings?.vmcProtocol, settings?.vmcPort]);
+
+  useEffect(() => {
+    if (!settings) return;
+    if (settings.trackingEngine === 'nvidia') {
+      void api.maxine.start().catch(() => undefined);
+    } else {
+      void api.maxine.stop().catch(() => undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bewusst nur die Maxine-relevanten Keys, nicht das ganze settings-Objekt
+  }, [
+    settings?.trackingEngine,
+    settings?.maxineExePath,
+    settings?.maxineCameraIndex,
+    settings?.maxineCameraCap,
+    settings?.maxineCamRes,
+    settings?.maxineCamFps,
+  ]);
 
   const tracking = useTracking({
     video: videoRef.current,
@@ -105,18 +124,20 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
     setPose(enriched);
     channelRef.current?.publish(enriched);
     lastPosePushedRef.current = performance.now();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Hot-Path: bewusst nur die Merge-relevanten Keys
   }, [
     tracking.pose,
     lipsync.phonemes,
     lipsync.ready,
     setPose,
     settings?.vmcEnabled,
+    settings?.trackingEngine,
     settings?.vmcSourceFace,
     settings?.vmcSourceHead,
   ]);
 
   useEffect(() => {
-    if (!settings?.vmcEnabled) return;
+    if (!settings || !isExternalFaceActive(settings)) return;
     const interval = window.setInterval(() => {
       const vmc = vmcSnapshotRef.current;
       if (!vmc || Date.now() - vmc.receivedAt > VMC_FRESHNESS_MS) return;
@@ -127,8 +148,10 @@ export const GlobalTrackingHost = memo(function GlobalTrackingHost(): JSX.Elemen
       lastPosePushedRef.current = performance.now();
     }, VMC_PULSE_INTERVAL_MS);
     return () => window.clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Puls-Loop: bewusst nur die Quelle-relevanten Keys
   }, [
     settings?.vmcEnabled,
+    settings?.trackingEngine,
     settings?.vmcSourceFace,
     settings?.vmcSourceHead,
     setPose,

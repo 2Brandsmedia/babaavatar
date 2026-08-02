@@ -48,7 +48,10 @@ export const CuratedList = memo(function CuratedList(): JSX.Element {
       <div>
         <h3 style={{ margin: 0, fontSize: 14 }}>Empfohlene Avatare (1-Klick-Import, kein Login nötig)</h3>
         <p style={{ margin: '4px 0 0 0', color: '#a0a0a8', fontSize: 12 }}>
-          Diese Avatare sind frei verfügbar und werden direkt von GitHub geladen. Für VRoid Hub, Booth und Co. brauchst du leider ein Konto bei der jeweiligen Plattform.
+          Diese Avatare sind frei verfügbar und werden direkt geladen. Für VRoid Hub, Booth und
+          Co. brauchst du leider ein Konto bei der jeweiligen Plattform. Tiere und Fantasiewesen
+          funktionieren genauso wie Menschen-Avatare — sie sind humanoid geriggt, dein Tracking
+          steuert sie 1:1.
         </p>
       </div>
       {error && <p style={{ color: '#ff7878', fontSize: 12, margin: 0 }}>Fehler: {error}</p>}

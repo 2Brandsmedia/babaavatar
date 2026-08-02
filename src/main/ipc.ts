@@ -31,6 +31,16 @@ import {
   getIfmStatus,
   setIfmWindows,
 } from './ifacialmocap-server.js';
+import {
+  startMaxine,
+  stopMaxine,
+  getMaxineStatus,
+  listMaxineCameras,
+  calibrateMaxine,
+  setMaxineWindows,
+} from './maxine-tracker.js';
+import { saveRecording, openRecordingsFolder } from './recordings.js';
+import { dialog } from 'electron';
 import os from 'node:os';
 import type { TrackerProtocol } from '../shared/types.js';
 
@@ -60,8 +70,11 @@ export function registerIpcHandlers(context: IpcContext): void {
   registerProfileHandlers();
   registerHotkeyHandlers();
   registerVmcHandlers();
+  registerMaxineHandlers();
+  registerRecordingHandlers();
   setVmcWindows({ controlWindow: context.controlWindow, outputWindow: context.outputWindow });
   setIfmWindows({ controlWindow: context.controlWindow, outputWindow: context.outputWindow });
+  setMaxineWindows({ controlWindow: context.controlWindow, outputWindow: context.outputWindow });
   log.info('IPC-Handler registriert');
 }
 
@@ -105,6 +118,52 @@ function registerVmcHandlers(): void {
   });
 }
 
+function registerMaxineHandlers(): void {
+  ipcMain.handle(IPC.MAXINE_START, async () => {
+    const s = settings.getAll();
+    return startMaxine({
+      exePath: s.maxineExePath ?? '',
+      cameraIndex: s.maxineCameraIndex,
+      cameraCap: s.maxineCameraCap,
+      camRes: s.maxineCamRes,
+      camFps: s.maxineCamFps,
+    });
+  });
+  ipcMain.handle(IPC.MAXINE_STOP, async () => {
+    await stopMaxine();
+    return getMaxineStatus();
+  });
+  ipcMain.handle(IPC.MAXINE_STATUS, () => getMaxineStatus());
+  ipcMain.handle(IPC.MAXINE_LIST_CAMERAS, async () => {
+    const exePath = settings.get('maxineExePath');
+    return listMaxineCameras(exePath ?? '');
+  });
+  ipcMain.handle(IPC.MAXINE_CALIBRATE, async () => calibrateMaxine());
+  ipcMain.handle(IPC.MAXINE_PICK_EXE, async () => {
+    if (!ctx) return null;
+    const result = await dialog.showOpenDialog(ctx.controlWindow, {
+      title: 'ExpressionApp.exe auswählen',
+      filters: [{ name: 'ExpressionApp', extensions: ['exe'] }],
+      properties: ['openFile'],
+    });
+    const picked = result.filePaths[0];
+    if (result.canceled || !picked) return null;
+    settings.set('maxineExePath', picked);
+    return picked;
+  });
+}
+
+function registerRecordingHandlers(): void {
+  ipcMain.handle(
+    IPC.RECORDING_SAVE,
+    async (_e, payload: { buffer: ArrayBuffer; mimeType: string }) => saveRecording(payload),
+  );
+  ipcMain.handle(IPC.RECORDING_OPEN_FOLDER, async () => openRecordingsFolder());
+  ipcMain.handle(IPC.RECORDING_TOGGLE, () => {
+    ctx?.outputWindow.webContents.send(IPC.RECORDING_TOGGLE);
+  });
+}
+
 function registerHotkeyHandlers(): void {
   ipcMain.handle(IPC.HOTKEY_REGISTER, (_e, hotkey: ExpressionHotkey) =>
     hotkeys.registerHotkey(hotkey),
@@ -128,8 +187,14 @@ function registerHotkeyHandlers(): void {
       }
       const buffer = await response.arrayBuffer();
       const urlPath = new URL(payload.url).pathname;
-      const lastSegment = urlPath.split('/').pop() ?? 'avatar.vrm';
-      return { buffer, fileName: lastSegment };
+      let fileName = urlPath.split('/').pop() ?? 'avatar.vrm';
+      // Arweave-URLs (kuratierte Kreaturen-Avatare) haben keine Datei-Endung —
+      // ohne .vrm würde der Import am Endungs-Check scheitern.
+      if (!fileName.toLowerCase().endsWith('.vrm')) {
+        const safeName = payload.displayName.replace(/[^\p{L}\p{N}_-]+/gu, '_');
+        fileName = `${safeName || 'avatar'}.vrm`;
+      }
+      return { buffer, fileName };
     },
   );
 }

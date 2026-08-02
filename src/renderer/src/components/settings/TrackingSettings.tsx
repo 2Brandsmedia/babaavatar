@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import type { AppSettings } from '@shared/types';
 import { SliderRow, ToggleRow, SelectRow } from '@renderer/components/ui/FormRows';
+import { MaxineSettings } from './MaxineSettings';
 
 interface TrackingSettingsProps {
   settings: AppSettings;
@@ -110,6 +111,9 @@ export const TrackingSettings = memo(function TrackingSettings({
         onChange={(v) => void onUpdate('showPerformanceStats', v)}
       />
       <EngineSelector settings={settings} onUpdate={onUpdate} />
+      {settings.trackingEngine === 'nvidia' && (
+        <MaxineSettings settings={settings} onUpdate={onUpdate} />
+      )}
     </div>
   );
 });

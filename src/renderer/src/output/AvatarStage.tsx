@@ -15,6 +15,7 @@ import { createLogger } from '@renderer/lib/logger';
 import { runFrame } from './avatar-frame-loop';
 import { useAvatarCameraInput } from './avatar-camera-input';
 import { StatsOverlay, useRendererStats } from './avatar-stats';
+import { useRecorder } from './use-recorder';
 
 const log = createLogger('avatar-stage');
 
@@ -63,6 +64,7 @@ export const AvatarStage = memo(function AvatarStage({
 
   const cameraInput = useAvatarCameraInput(settingsRef);
   const stats = useRendererStats(sceneRef, frameCounterRef);
+  const recorder = useRecorder(canvasRef);
 
   useEffect(() => {
     mirrorRef.current = mirror;
@@ -242,6 +244,50 @@ export const AvatarStage = memo(function AvatarStage({
         </div>
       )}
       {showStats && <StatsOverlay stats={stats} />}
+      {recorder.recording && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'rgba(0,0,0,0.55)',
+            color: '#ff5050',
+            padding: '4px 10px',
+            borderRadius: 999,
+            fontSize: 12,
+            fontWeight: 700,
+            fontFamily: '-apple-system, Segoe UI, sans-serif',
+            pointerEvents: 'none',
+          }}
+        >
+          <span
+            style={{ width: 8, height: 8, borderRadius: 999, background: '#ff5050' }}
+          />
+          REC
+        </div>
+      )}
+      {recorder.error && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.7)',
+            color: '#ff7878',
+            padding: '4px 12px',
+            borderRadius: 8,
+            fontSize: 12,
+            fontFamily: '-apple-system, Segoe UI, sans-serif',
+            pointerEvents: 'none',
+          }}
+        >
+          {recorder.error}
+        </div>
+      )}
     </>
   );
 });

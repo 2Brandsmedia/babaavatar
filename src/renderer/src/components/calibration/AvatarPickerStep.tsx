@@ -31,7 +31,7 @@ export const AvatarPickerStep = memo(function AvatarPickerStep({ onPicked }: Ava
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <p style={{ margin: 0, fontSize: 13 }}>
-          Du hast noch keine Avatare. Wechsle links in der Sidebar zu „Avatare" → „Avatare finden",
+          Du hast noch keine Avatare. Wechsle links in der Sidebar zu „Avatare“ → „Avatare finden“,
           lade einen herunter (z.B. den empfohlenen Perfect-Sync-Avatar) und komm dann zurück.
         </p>
       </div>

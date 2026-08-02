@@ -69,7 +69,7 @@ export const TrackerSetupGuide = memo(function TrackerSetupGuide({
               In RhyLive deine PC-IP eintragen: {ipDisplay} und Port{' '}
               <code style={{ color: '#7aa7ff' }}>{port}</code>
             </li>
-            <li>„Send"-Button in RhyLive drücken, die LED oben wird grün</li>
+            <li>„Send“-Button in RhyLive drücken, die LED oben wird grün</li>
           </ol>
         </>
       )}

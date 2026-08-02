@@ -55,6 +55,11 @@ const defaults: AppSettings = {
   vmcSourceHead: true,
   springBoneColliderMultiplier: 1,
   trackingSource: 'webcam',
+  maxineExePath: null,
+  maxineCameraIndex: 0,
+  maxineCameraCap: 0,
+  maxineCamRes: '1280x720',
+  maxineCamFps: 60,
 };
 
 interface StoreSchema extends AppSettings {
@@ -114,6 +119,11 @@ export function getAll(): AppSettings {
     springBoneColliderMultiplier:
       raw.springBoneColliderMultiplier ?? defaults.springBoneColliderMultiplier,
     trackingSource: raw.trackingSource ?? defaults.trackingSource,
+    maxineExePath: raw.maxineExePath ?? defaults.maxineExePath,
+    maxineCameraIndex: raw.maxineCameraIndex ?? defaults.maxineCameraIndex,
+    maxineCameraCap: raw.maxineCameraCap ?? defaults.maxineCameraCap,
+    maxineCamRes: raw.maxineCamRes ?? defaults.maxineCamRes,
+    maxineCamFps: raw.maxineCamFps ?? defaults.maxineCamFps,
   };
 }
 

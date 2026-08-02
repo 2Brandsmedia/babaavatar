@@ -16,6 +16,13 @@ interface LipsyncSnapshot {
 
 const VMC_FRESHNESS_MS = 2000;
 
+// Externe Face-Quelle: VMC/iFacialMocap-Server ODER der NVIDIA-Maxine-Sidecar —
+// beide liefern VmcSnapshots über denselben IPC-Kanal.
+export function isExternalFaceActive(settings: AppSettings | null): boolean {
+  if (!settings) return false;
+  return settings.vmcEnabled || settings.trackingEngine === 'nvidia';
+}
+
 export function buildAudioPhonemes(lipsync: LipsyncSnapshot): AudioPhonemes | null {
   if (!lipsync.ready) return null;
   return {
@@ -34,7 +41,12 @@ export function enrichTrackingFrame(
   vmc: VmcSnapshot | null,
 ): PoseFrame {
   let enriched: PoseFrame = { ...pose, audioPhonemes };
-  if (settings?.vmcEnabled && vmc && Date.now() - vmc.receivedAt < VMC_FRESHNESS_MS) {
+  if (
+    settings &&
+    isExternalFaceActive(settings) &&
+    vmc &&
+    Date.now() - vmc.receivedAt < VMC_FRESHNESS_MS
+  ) {
     enriched = mergeVmcIntoPose(enriched, vmc, {
       applyFace: settings.vmcSourceFace,
       applyHead: settings.vmcSourceHead,

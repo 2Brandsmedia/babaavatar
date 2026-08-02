@@ -70,6 +70,86 @@
       "downloadUrl": "https://raw.githubusercontent.com/pixiv/three-vrm/dev/packages/three-vrm/examples/models/three-vrm-girl-1.vrm",
       "previewUrl": "",
       "tags": ["sample", "demo"]
+    },
+    {
+      "id": "osa-froggy",
+      "displayName": "Froggy (Frosch)",
+      "description": "🐸 Humanoid geriggter Frosch aus 100Avatars — Körper, Arme und Kopf folgen deinem Tracking wie bei jedem Menschen-Avatar. CC0, auch kommerziell frei.",
+      "author": "ToxSam / 100Avatars (Open Source Avatars)",
+      "license": "CC0",
+      "downloadUrl": "https://arweave.net/0iS8IZahQQDqY27djsEsshpDmWJHEoOSfxwYVJ1Opys",
+      "previewUrl": "",
+      "tags": ["kreatur", "tier", "cc0", "kommerziell"]
+    },
+    {
+      "id": "osa-wolfman",
+      "displayName": "Wolfman (Werwolf)",
+      "description": "🐺 Aufrechter Wolf mit humanoidem Skelett — ideal für „Video als Tier“-Aufnahmen. CC0.",
+      "author": "ToxSam / 100Avatars (Open Source Avatars)",
+      "license": "CC0",
+      "downloadUrl": "https://arweave.net/wGhrzz7gMTxVeu8SeinAox3FO57BjQ09xjjcO4bOR9I",
+      "previewUrl": "",
+      "tags": ["kreatur", "tier", "cc0", "kommerziell"]
+    },
+    {
+      "id": "osa-rabbit",
+      "displayName": "Rabbit (Hase)",
+      "description": "🐰 Humanoider Hase aus 100Avatars R1. CC0.",
+      "author": "ToxSam / 100Avatars (Open Source Avatars)",
+      "license": "CC0",
+      "downloadUrl": "https://arweave.net/RymRtrmhHx_f9ZDvtvIQb1noTHvILdjoTg5G7L2DR-8",
+      "previewUrl": "",
+      "tags": ["kreatur", "tier", "cc0", "kommerziell"]
+    },
+    {
+      "id": "osa-dinokid",
+      "displayName": "DinoKid (Dino)",
+      "description": "🦖 Kleiner Dino mit humanoidem Rig. CC0.",
+      "author": "ToxSam / 100Avatars (Open Source Avatars)",
+      "license": "CC0",
+      "downloadUrl": "https://arweave.net/T1gkB95XKXAZl_VmU1ozg5Txm--o9nY0Nge3s8zNoBs",
+      "previewUrl": "",
+      "tags": ["kreatur", "tier", "cc0", "kommerziell"]
+    },
+    {
+      "id": "osa-sharkperson",
+      "displayName": "SharkPerson (Hai)",
+      "description": "🦈 Hai-Mensch aus 100Avatars R2. CC0.",
+      "author": "ToxSam / 100Avatars (Open Source Avatars)",
+      "license": "CC0",
+      "downloadUrl": "https://arweave.net/mW-D--cWzk7G8efvS8CXMIu_-501NHTHwY8Hi3bjRJ8",
+      "previewUrl": "",
+      "tags": ["kreatur", "tier", "cc0", "kommerziell"]
+    },
+    {
+      "id": "osa-penguin",
+      "displayName": "ChillPenguin (Pinguin)",
+      "description": "🐧 Entspannter Pinguin mit humanoidem Skelett. CC0.",
+      "author": "ToxSam / 100Avatars (Open Source Avatars)",
+      "license": "CC0",
+      "downloadUrl": "https://arweave.net/4c5EhflLKYfBtzpcLlvZY0afAwXLVdxXmpgwGaarAIQ",
+      "previewUrl": "",
+      "tags": ["kreatur", "tier", "cc0", "kommerziell"]
+    },
+    {
+      "id": "osa-coolbunny",
+      "displayName": "CoolBunny",
+      "description": "🐇 Stilisierter Hase aus 100Avatars R2. CC0.",
+      "author": "ToxSam / 100Avatars (Open Source Avatars)",
+      "license": "CC0",
+      "downloadUrl": "https://arweave.net/lA9N84hBGYUdwsPRBte3IBgw3U6L0LiXoUTAXoV0tVA",
+      "previewUrl": "",
+      "tags": ["kreatur", "tier", "cc0", "kommerziell"]
+    },
+    {
+      "id": "osa-devil",
+      "displayName": "Devil (Teufelchen)",
+      "description": "😈 Kleiner Teufel aus 100Avatars R1 — Fantasiewesen mit Standard-Humanoid-Rig. CC0.",
+      "author": "ToxSam / 100Avatars (Open Source Avatars)",
+      "license": "CC0",
+      "downloadUrl": "https://arweave.net/gfVzs1oH_aPaHVxpQK86HT_rqzyrFPOUKUrDJ30yprs",
+      "previewUrl": "",
+      "tags": ["kreatur", "fantasy", "cc0", "kommerziell"]
     }
   ]
 }

@@ -90,6 +90,11 @@ export const IFACIALMOCAP_DEFAULT_PORT = 49983;
 export const IFACIALMOCAP_HANDSHAKE_MAGIC =
   'iFacialMocap_sahuasouryya9218sauhuiayeta91555dy3719';
 
+// NVIDIA Maxine ExpressionApp (Windows-Sidecar): sendet UDP-JSON an diesen festen Port,
+// Kalibrier-Kommandos gehen an MAXINE_CMD_PORT_BASE + Kamera-Index.
+export const MAXINE_UDP_PORT = 9140;
+export const MAXINE_CMD_PORT_BASE = 9160;
+
 export const FRAME_TARGET_HZ = 60;
 export const FRAME_TARGET_INTERVAL_MS = 1000 / FRAME_TARGET_HZ;
 

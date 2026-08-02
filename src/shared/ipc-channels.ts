@@ -57,6 +57,19 @@ export const IPC = {
   VMC_FRAME: 'vmc:frame',
   VMC_LOCAL_IPS: 'vmc:local-ips',
 
+  // NVIDIA Maxine (ExpressionApp-Sidecar, nur Windows)
+  MAXINE_START: 'maxine:start',
+  MAXINE_STOP: 'maxine:stop',
+  MAXINE_STATUS: 'maxine:status',
+  MAXINE_LIST_CAMERAS: 'maxine:list-cameras',
+  MAXINE_CALIBRATE: 'maxine:calibrate',
+  MAXINE_PICK_EXE: 'maxine:pick-exe',
+
+  // Video-Aufnahme (Output-Window)
+  RECORDING_SAVE: 'recording:save',
+  RECORDING_TOGGLE: 'recording:toggle',
+  RECORDING_OPEN_FOLDER: 'recording:open-folder',
+
   // Updater
   UPDATER_AVAILABLE: 'updater:available',
   UPDATER_PROGRESS: 'updater:progress',

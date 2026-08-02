@@ -36,7 +36,7 @@ export const DropZone = memo(function DropZone({ onFiles }: DropZoneProps): JSX.
     >
       <div style={{ fontSize: 14, fontWeight: 600 }}>VRM-Datei hierhin ziehen</div>
       <div style={{ fontSize: 12, marginTop: 4 }}>
-        Oder über die "Importieren"-Schaltfläche eine Datei auswählen
+        Oder über die „Importieren“-Schaltfläche eine Datei auswählen
       </div>
     </div>
   );

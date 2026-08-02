@@ -106,6 +106,11 @@ export interface AppSettings {
   vmcSourceHead: boolean;
   springBoneColliderMultiplier: number;
   trackingSource: TrackingSource;
+  maxineExePath: string | null;
+  maxineCameraIndex: number;
+  maxineCameraCap: number;
+  maxineCamRes: string;
+  maxineCamFps: number;
 }
 
 export interface Vec3 {
@@ -252,6 +257,29 @@ export interface PoseFrame {
 }
 
 export type TrackerProtocol = 'vmc' | 'ifacialmocap';
+
+export interface MaxineCameraMode {
+  id: number;
+  width: number;
+  height: number;
+  fps: number;
+  format: number;
+}
+
+export interface MaxineCamera {
+  id: number;
+  name: string;
+  modes: MaxineCameraMode[];
+}
+
+export interface MaxineStatus {
+  available: boolean;
+  running: boolean;
+  pid: number | null;
+  packetsReceived: number;
+  lastMessageAt: number;
+  error: string | null;
+}
 
 export type TrackingSource = 'webcam' | 'external' | 'both';
 
