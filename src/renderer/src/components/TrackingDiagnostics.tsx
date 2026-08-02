@@ -1,8 +1,11 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type { PoseFrame } from '@shared/types';
 import { useTrackingStore } from '@renderer/store/tracking';
+import { api } from '@renderer/lib/ipc/api';
 
 const REFRESH_MS = 150;
+const DUMP_DURATION_MS = 5000;
+const DUMP_SAMPLE_MS = 50;
 
 // Live-Diagnose: zeigt, WARUM sich ein Glied nicht bewegt (Gate zu? Confidence
 // im Keller? Werte kommen an, aber winzig?). Werte aktualisieren gedrosselt,
@@ -46,7 +49,74 @@ export const TrackingDiagnostics = memo(function TrackingDiagnostics(): JSX.Elem
       >
         {open ? '▾' : '▸'} Tracking-Diagnose (Debug)
       </button>
-      {open && <DiagnosticsBody frame={snapshot} fps={metrics.fps} />}
+      {open && (
+        <>
+          <PoseDumpButton />
+          <DiagnosticsBody frame={snapshot} fps={metrics.fps} />
+        </>
+      )}
+    </div>
+  );
+});
+
+// Zeichnet 5 Sekunden PoseFrames als JSON auf (userData/recordings/) —
+// damit lassen sich Bewegungsprobleme an echten Zahlen analysieren statt raten.
+const PoseDumpButton = memo(function PoseDumpButton(): JSX.Element {
+  const [state, setState] = useState<'idle' | 'recording' | 'saved' | 'error'>('idle');
+  const [savedPath, setSavedPath] = useState<string | null>(null);
+  const framesRef = useRef<PoseFrame[]>([]);
+
+  const start = (): void => {
+    setState('recording');
+    framesRef.current = [];
+    const interval = window.setInterval(() => {
+      const pose = useTrackingStore.getState().pose;
+      if (pose) framesRef.current.push(pose);
+    }, DUMP_SAMPLE_MS);
+    window.setTimeout(() => {
+      window.clearInterval(interval);
+      const json = JSON.stringify(
+        { recordedAt: new Date().toISOString(), frames: framesRef.current },
+        null,
+        1,
+      );
+      const buffer = new TextEncoder().encode(json).buffer as ArrayBuffer;
+      void api.recording
+        .save({ buffer, mimeType: 'application/json' })
+        .then((result) => {
+          setSavedPath(result.filePath);
+          setState('saved');
+        })
+        .catch(() => setState('error'));
+    }, DUMP_DURATION_MS);
+  };
+
+  return (
+    <div style={{ padding: '0 12px 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <button
+        type="button"
+        onClick={start}
+        disabled={state === 'recording'}
+        style={{
+          padding: '5px 10px',
+          fontSize: 11,
+          borderRadius: 6,
+          border: '1px solid #3a3a44',
+          background: state === 'recording' ? '#3b1c1c' : '#26262e',
+          color: state === 'recording' ? '#ff7878' : '#e8e8ec',
+          cursor: state === 'recording' ? 'wait' : 'pointer',
+        }}
+      >
+        {state === 'recording' ? '● zeichnet 5 s auf…' : '5 s Tracking-Daten aufzeichnen'}
+      </button>
+      {state === 'saved' && savedPath && (
+        <span style={{ fontSize: 10, color: '#7af2c5', wordBreak: 'break-all' }}>
+          Gespeichert: {savedPath}
+        </span>
+      )}
+      {state === 'error' && (
+        <span style={{ fontSize: 10, color: '#ff7878' }}>Speichern fehlgeschlagen</span>
+      )}
     </div>
   );
 });

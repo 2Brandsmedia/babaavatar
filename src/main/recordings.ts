@@ -16,7 +16,11 @@ export async function saveRecording(payload: {
   const dir = recordingsDir();
   await fs.mkdir(dir, { recursive: true });
 
-  const extension = payload.mimeType.includes('mp4') ? 'mp4' : 'webm';
+  const extension = payload.mimeType.includes('json')
+    ? 'json'
+    : payload.mimeType.includes('mp4')
+      ? 'mp4'
+      : 'webm';
   const stamp = new Date()
     .toISOString()
     .replace(/[:.]/g, '-')
