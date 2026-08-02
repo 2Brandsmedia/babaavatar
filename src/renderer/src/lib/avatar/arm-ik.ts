@@ -16,6 +16,8 @@ const TMP_BIND_DIR = new THREE.Vector3();
 const TMP_QUAT = new THREE.Quaternion();
 const TMP_PARENT_QUAT = new THREE.Quaternion();
 const TMP_INV_QUAT = new THREE.Quaternion();
+const TMP_CUR_WORLD = new THREE.Quaternion();
+const TMP_NEW_WORLD = new THREE.Quaternion();
 
 export interface ArmIKResult {
   upperArmLocalQuat: THREE.Quaternion;
@@ -102,26 +104,28 @@ export function applyArmIK({ vrm, side, armWorld, blendFactor }: ArmIKInput): vo
   TMP_UPPER_DIR.copy(TMP_ELBOW).sub(TMP_SHOULDER).normalize();
   TMP_LOWER_DIR.copy(TMP_TARGET).sub(TMP_ELBOW).normalize();
 
+  // ΔQ (Welt) von der AKTUELLEN Segmentrichtung zur IK-Zielrichtung, dann auf die
+  // aktuelle Welt-Rotation aufmultipliziert und in den lokalen Raum überführt.
+  // (Vorher wurde das Delta fälschlich als absolute Bone-Rotation benutzt — die IK
+  // kämpfte gegen das FK-Tracking und der Arm blieb in falschen Posen hängen.)
   TMP_BIND_DIR.copy(TMP_ELBOW_REF).sub(TMP_SHOULDER).normalize();
   TMP_QUAT.setFromUnitVectors(TMP_BIND_DIR, TMP_UPPER_DIR);
+  upperBone.getWorldQuaternion(TMP_CUR_WORLD);
+  TMP_NEW_WORLD.copy(TMP_QUAT).multiply(TMP_CUR_WORLD);
   upperBone.parent?.getWorldQuaternion(TMP_PARENT_QUAT);
   TMP_INV_QUAT.copy(TMP_PARENT_QUAT).invert();
-  const upperLocal = new THREE.Quaternion()
-    .copy(TMP_INV_QUAT)
-    .multiply(TMP_QUAT)
-    .multiply(TMP_PARENT_QUAT);
+  const upperLocal = new THREE.Quaternion().copy(TMP_INV_QUAT).multiply(TMP_NEW_WORLD);
   upperBone.quaternion.slerp(upperLocal, blendFactor);
 
   upperBone.updateMatrixWorld(true);
 
   TMP_BIND_DIR.copy(TMP_WRIST_REF).sub(TMP_ELBOW_REF).normalize();
   TMP_QUAT.setFromUnitVectors(TMP_BIND_DIR, TMP_LOWER_DIR);
+  lowerBone.getWorldQuaternion(TMP_CUR_WORLD);
+  TMP_NEW_WORLD.copy(TMP_QUAT).multiply(TMP_CUR_WORLD);
   lowerBone.parent?.getWorldQuaternion(TMP_PARENT_QUAT);
   TMP_INV_QUAT.copy(TMP_PARENT_QUAT).invert();
-  const lowerLocal = new THREE.Quaternion()
-    .copy(TMP_INV_QUAT)
-    .multiply(TMP_QUAT)
-    .multiply(TMP_PARENT_QUAT);
+  const lowerLocal = new THREE.Quaternion().copy(TMP_INV_QUAT).multiply(TMP_NEW_WORLD);
   lowerBone.quaternion.slerp(lowerLocal, blendFactor);
 }
 
