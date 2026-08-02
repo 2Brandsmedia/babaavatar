@@ -23,7 +23,9 @@ Tracker" von VTube Studio.
    Studio → **Eigenschaften → Reiter „DLC"** → Häkchen bei **„NVIDIA Broadcast Tracker"**
    setzen (~2 GB Download; taucht das DLC dort nicht auf, vorher auf der Shop-Seite
    <https://store.steampowered.com/app/2178540/> zum Konto hinzufügen). Danach liegt die App
-   unter `…\Steam\steamapps\common\VTube Studio\MXTracker\ExpressionApp.exe`.
+   unter `…\Steam\steamapps\common\VTube Studio\VTube Studio_Data\StreamingAssets\MXTracker\ExpressionApp.exe`.
+   Fehlt der MXTracker-Ordner trotz „installiert": Eigenschaften → Installierte Dateien →
+   „Integrität der Spieldateien überprüfen" lädt die ~2 GB nach.
    Alternativ selbst bauen: <https://github.com/NVIDIA-Maxine/Maxine-AR-SDK>
    (Visual Studio + CMake).
 3. In BabaAvatar: **Einstellungen → Tracking → Tracking-Engine: „NVIDIA Broadcast (RTX-GPU)"**
