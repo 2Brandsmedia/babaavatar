@@ -150,11 +150,11 @@ export async function listMaxineCameras(exePath: string): Promise<MaxineCamera[]
     );
   });
 
-  // ExpressionApp trennt Log-Ausgabe und JSON-Block durch Leerzeilen.
-  const jsonStart = stdout.indexOf('[');
-  if (jsonStart < 0) throw new Error('Keine Kamera-Liste in der ExpressionApp-Ausgabe gefunden.');
-  const parsed: unknown = JSON.parse(stdout.slice(jsonStart));
-  if (!Array.isArray(parsed)) throw new Error('Kamera-Liste hat ein unerwartetes Format.');
+  // ExpressionApp mischt Log-Zeilen (die auch '[' enthalten) mit dem JSON-Block —
+  // deshalb jeden '['-Kandidaten per Klammer-Matching extrahieren und parsen,
+  // bis eine echte Kamera-Liste (Array von Objekten mit caps/name) gefunden ist.
+  const parsed = extractCameraJson(stdout);
+  if (!parsed) throw new Error('Keine Kamera-Liste in der ExpressionApp-Ausgabe gefunden.');
 
   const cameras: MaxineCamera[] = [];
   for (const [index, entry] of parsed.entries()) {
@@ -381,6 +381,54 @@ function handleDatagram(msg: Buffer): void {
   };
   outputWindow?.webContents.send(IPC.VMC_FRAME, snapshot);
   controlWindow?.webContents.send(IPC.VMC_FRAME, snapshot);
+}
+
+function extractCameraJson(stdout: string): unknown[] | null {
+  for (let i = stdout.indexOf('['); i >= 0; i = stdout.indexOf('[', i + 1)) {
+    const candidate = extractBalancedArray(stdout, i);
+    if (!candidate) continue;
+    try {
+      const parsed: unknown = JSON.parse(candidate);
+      if (
+        Array.isArray(parsed) &&
+        parsed.length > 0 &&
+        parsed.every((e) => typeof e === 'object' && e !== null)
+      ) {
+        return parsed;
+      }
+    } catch {
+      // kein valides JSON an dieser Stelle — nächsten Kandidaten probieren
+    }
+  }
+  return null;
+}
+
+function extractBalancedArray(text: string, start: number): string | null {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      if (inString) escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === '[') depth += 1;
+    else if (ch === ']') {
+      depth -= 1;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
 }
 
 function normalizeSideSuffix(name: string): string {
