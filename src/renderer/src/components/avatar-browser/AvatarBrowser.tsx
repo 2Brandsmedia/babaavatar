@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { AVATAR_BROWSER_SOURCES } from '@shared/constants';
 import type { DownloadProgress } from '@shared/types';
 import { api } from '@renderer/lib/ipc/api';
+import { useUpdaterStore } from '@renderer/store/updater';
 import { SourceTabs } from './SourceTabs';
 import { BrowserToolbar } from './BrowserToolbar';
 import { DownloadQueue } from './DownloadQueue';
@@ -17,12 +18,19 @@ export const AvatarBrowser = memo(function AvatarBrowser(): JSX.Element {
   const [downloads, setDownloads] = useState<Map<string, DownloadProgress>>(new Map());
   const browserAreaRef = useRef<HTMLDivElement>(null);
   const updateBoundsRef = useRef<() => void>(() => undefined);
+  // Solange der Update-Dialog offen ist, muss die native Browser-Ebene weg —
+  // sie läge sonst ÜBER dem DOM-Overlay und der Dialog wäre unbedienbar.
+  const updaterVisible = useUpdaterStore((s) => s.phase !== 'idle');
 
   useEffect(() => {
     void api.browser.navigate(currentUrl);
   }, [currentUrl]);
 
   useEffect(() => {
+    if (updaterVisible) {
+      void api.browser.hide();
+      return;
+    }
     const updateBounds = (): void => {
       const area = browserAreaRef.current;
       if (!area) return;
@@ -54,7 +62,7 @@ export const AvatarBrowser = memo(function AvatarBrowser(): JSX.Element {
       window.clearInterval(interval);
       void api.browser.hide();
     };
-  }, []);
+  }, [updaterVisible]);
 
   useEffect(() => {
     const unsubscribe = api.on<DownloadProgress>(api.ipcChannels.DOWNLOAD_PROGRESS, (progress) => {

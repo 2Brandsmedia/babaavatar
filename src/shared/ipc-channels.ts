@@ -70,8 +70,13 @@ export const IPC = {
   RECORDING_TOGGLE: 'recording:toggle',
   RECORDING_OPEN_FOLDER: 'recording:open-folder',
 
+  // App-Info
+  APP_VERSION: 'app:version',
+
   // Updater
   UPDATER_AVAILABLE: 'updater:available',
+  UPDATER_NOT_AVAILABLE: 'updater:not-available',
+  UPDATER_CHECKING: 'updater:checking',
   UPDATER_PROGRESS: 'updater:progress',
   UPDATER_DOWNLOADED: 'updater:downloaded',
   UPDATER_ERROR: 'updater:error',

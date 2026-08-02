@@ -49,7 +49,10 @@ export function initAutoUpdater({ controlWindow }: UpdaterOptions): void {
     ipcRegistered = true;
   }
 
-  autoUpdater.on('checking-for-update', () => log.info('Suche nach Update'));
+  autoUpdater.on('checking-for-update', () => {
+    log.info('Suche nach Update');
+    currentWindow?.webContents.send(IPC.UPDATER_CHECKING);
+  });
 
   autoUpdater.on('update-available', (info) => {
     log.info('Update verfuegbar', { version: info.version });
@@ -67,7 +70,12 @@ export function initAutoUpdater({ controlWindow }: UpdaterOptions): void {
     });
   });
 
-  autoUpdater.on('update-not-available', () => log.info('Keine neue Version'));
+  autoUpdater.on('update-not-available', () => {
+    log.info('Keine neue Version');
+    currentWindow?.webContents.send(IPC.UPDATER_NOT_AVAILABLE, {
+      currentVersion: app.getVersion(),
+    });
+  });
 
   autoUpdater.on('error', (err) => {
     log.error('Updater-Fehler', err);

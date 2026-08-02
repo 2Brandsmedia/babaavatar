@@ -15,7 +15,9 @@ export const AvatarsSection = memo(function AvatarsSection({
   onSelect,
   avatarCount,
 }: AvatarsSectionProps): JSX.Element {
-  const [tab, setTab] = useState<Tab>(avatarCount === 0 ? 'browser' : 'library');
+  // Immer in der Bibliothek starten: Der Browser-Tab legt eine NATIVE WebContentsView über
+  // das Fenster, die DOM-Overlays (z.B. den Update-Dialog) verdecken würde.
+  const [tab, setTab] = useState<Tab>('library');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

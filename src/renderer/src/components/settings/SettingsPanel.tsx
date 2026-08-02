@@ -8,6 +8,7 @@ import { CompositionSettings } from './CompositionSettings';
 import { AudioSettings } from './AudioSettings';
 import { GestureSettings } from './GestureSettings';
 import { ExternalTrackerSettings } from './ExternalTrackerSettings';
+import { UpdateSettings } from './UpdateSettings';
 
 type Tab =
   | 'tracking'
@@ -17,7 +18,8 @@ type Tab =
   | 'composition'
   | 'background'
   | 'output'
-  | 'performance';
+  | 'performance'
+  | 'update';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'tracking', label: 'Tracking' },
@@ -28,6 +30,7 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'background', label: 'Hintergrund' },
   { id: 'output', label: 'Output-Fenster' },
   { id: 'performance', label: 'Performance' },
+  { id: 'update', label: 'Update' },
 ];
 
 export const SettingsPanel = memo(function SettingsPanel(): JSX.Element {
@@ -68,6 +71,7 @@ export const SettingsPanel = memo(function SettingsPanel(): JSX.Element {
         {tab === 'background' && <BackgroundSettings settings={settings} onUpdate={update} />}
         {tab === 'output' && <OutputWindowSettings settings={settings} onUpdate={update} />}
         {tab === 'performance' && <PerformanceSettings settings={settings} onUpdate={update} />}
+        {tab === 'update' && <UpdateSettings />}
       </div>
     </div>
   );

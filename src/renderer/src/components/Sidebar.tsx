@@ -1,5 +1,6 @@
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { APP_NAME } from '@shared/constants';
+import { api } from '@renderer/lib/ipc/api';
 
 export type SidebarSection =
   | 'avatars'
@@ -81,8 +82,24 @@ export const Sidebar = memo(function Sidebar({
           Entwickelt von 2Brands Media GmbH
         </button>
         <div style={{ color: '#3a3a44', fontSize: 10 }}>© 2026 — Für T ♥</div>
+        <VersionBadge />
       </div>
     </>
+  );
+});
+
+const VersionBadge = memo(function VersionBadge(): JSX.Element {
+  const [version, setVersion] = useState<string>('');
+  useEffect(() => {
+    void api.app
+      .getVersion()
+      .then(setVersion)
+      .catch(() => setVersion(''));
+  }, []);
+  return (
+    <div style={{ color: '#52525a', fontSize: 10, fontVariantNumeric: 'tabular-nums' }}>
+      {version ? `Version ${version}` : ''}
+    </div>
   );
 });
 

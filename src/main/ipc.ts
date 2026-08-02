@@ -40,7 +40,7 @@ import {
   setMaxineWindows,
 } from './maxine-tracker.js';
 import { saveRecording, openRecordingsFolder } from './recordings.js';
-import { dialog } from 'electron';
+import { app, dialog } from 'electron';
 import os from 'node:os';
 import type { TrackerProtocol } from '../shared/types.js';
 
@@ -72,6 +72,7 @@ export function registerIpcHandlers(context: IpcContext): void {
   registerVmcHandlers();
   registerMaxineHandlers();
   registerRecordingHandlers();
+  registerAppInfoHandlers();
   setVmcWindows({ controlWindow: context.controlWindow, outputWindow: context.outputWindow });
   setIfmWindows({ controlWindow: context.controlWindow, outputWindow: context.outputWindow });
   setMaxineWindows({ controlWindow: context.controlWindow, outputWindow: context.outputWindow });
@@ -151,6 +152,10 @@ function registerMaxineHandlers(): void {
     settings.set('maxineExePath', picked);
     return picked;
   });
+}
+
+function registerAppInfoHandlers(): void {
+  ipcMain.handle(IPC.APP_VERSION, () => app.getVersion());
 }
 
 function registerRecordingHandlers(): void {

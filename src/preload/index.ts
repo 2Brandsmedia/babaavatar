@@ -15,6 +15,7 @@ const api = {
   app: {
     isDev: process.env['NODE_ENV'] !== 'production',
     platform: process.platform,
+    getVersion: (): Promise<string> => ipcRenderer.invoke(IPC.APP_VERSION),
   },
 
   settings: {
