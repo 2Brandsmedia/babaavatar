@@ -1,6 +1,6 @@
 {
   "name": "babaavatar",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "BabaAvatar — VTuber-Anwendung: Webcam-Tracking (Gesicht, Oberkörper, Hände) auf VRM-Avatare, für OBS-Streaming via Window Capture mit Chroma-Key.",
   "main": "out/main/index.js",
   "author": "2Brands Media GmbH <info@2brandsmedia.com>",
@@ -11,6 +11,7 @@
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
     "build:win": "npm run build && electron-builder --win",
+    "build:mac": "npm run build && electron-builder --mac",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts,.tsx --max-warnings 0",

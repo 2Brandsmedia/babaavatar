@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Eingebauter Browser für die wichtigsten freien VRM-Quellen (VRoid Hub, Booth, Open Source Avatars, Niconi Solid, Live3D). `.vrm`-Downloads werden automatisch in die lokale Library importiert, Lizenz wird ausgelesen und als Ampel angezeigt. VRoid Hub zusätzlich via OAuth-API.
 
-Entwicklung läuft auf **macOS**, Release-Ziel ist **nur Windows (.exe)** — Entscheidung 2026-08-02. Ziel: Webcam-Tracking so hochtreu, dass man Videos „als andere Figur" (Kreaturen, Tiere, anderer Look) aufnehmen kann. Windows-Qualitäts-Setup (NVIDIA Maxine, FasterLivePortrait, Leap Motion): `docs/windows-setup.md`.
+Entwicklung läuft auf **macOS**, Release-Ziele sind **Windows (.exe) und macOS (.dmg)** — der Tracking-Stack ist plattformneutral, nur der optionale NVIDIA-Maxine-Pfad ist Windows-exklusiv. ⚠️ Mac-Auto-Update braucht Code-Signing (fehlt) — Mac aktualisiert manuell per .dmg. Ziel: Webcam-Tracking so hochtreu, dass man Videos „als andere Figur" (Kreaturen, Tiere, anderer Look) aufnehmen kann. Windows-Qualitäts-Setup (NVIDIA Maxine, FasterLivePortrait, Leap Motion): `docs/windows-setup.md`.
 
 Vollständiger Architektur-Plan: `/Users/fuerte/.claude/plans/willst-du-dich-vorher-silly-rabbit.md`.
 
@@ -24,6 +24,7 @@ npm run format           # Prettier
 
 npm run build            # typecheck + electron-vite Production-Build
 npm run build:win        # → dist/BabaAvatar-Setup-<version>.exe (NSIS, Cross-Build vom Mac geht)
+npm run build:mac        # → dist/BabaAvatar-<version>.dmg (arm64 + x64)
 npm run preview          # baut + startet die Production-App lokal
 ```
 

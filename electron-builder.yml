@@ -13,11 +13,31 @@ files:
 
 asar: true
 
+# Kein Native-Rebuild: @serialport/bindings-cpp (via osc) liefert N-API-Prebuilds für
+# alle Plattformen mit; der Rebuild scheitert an node-gyp/Python-3.12 (distutils weg).
+npmRebuild: false
+
 asarUnpack:
   - node_modules/electron-updater/**/*
 
-# Windows-only seit 2026-08-02 (Entscheidung Baba): Mac ist reine Dev-Umgebung (npm run dev),
-# es gibt keinen Mac-Release-Build mehr. Native NVIDIA-Pfade (Maxine) sind Windows-exklusiv.
+# Beide Plattformen seit 2026-08-02 Abend (Entscheidung Baba): MediaPipe-Stack läuft
+# überall identisch; nur der optionale NVIDIA-Maxine-Pfad ist Windows-exklusiv.
+# ⚠️ Ohne Code-Signing kann der Auto-Updater auf macOS NICHT aktualisieren —
+# Mac-Updates werden manuell per .dmg installiert.
+mac:
+  category: public.app-category.video
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  icon: resources/icon.png
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  extendInfo:
+    NSCameraUsageDescription: 'BabaAvatar braucht Zugriff auf die Kamera für das Gesichts-Tracking.'
+    NSMicrophoneUsageDescription: 'BabaAvatar braucht Zugriff auf das Mikrofon für Lipsync.'
+
 win:
   target:
     - target: nsis
