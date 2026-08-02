@@ -12,6 +12,7 @@ import { unregisterAll as unregisterHotkeys } from './hotkeys.js';
 import { initAutoUpdater } from './auto-updater.js';
 import { stopVmcServer } from './vmc-server.js';
 import { stopIfmServer } from './ifacialmocap-server.js';
+import { stopMaxine } from './maxine-tracker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,6 +95,7 @@ app.on('before-quit', () => {
   unregisterHotkeys();
   void stopVmcServer();
   void stopIfmServer();
+  void stopMaxine();
   if (outputWindow && !outputWindow.isDestroyed()) {
     outputWindow.removeAllListeners('close');
     outputWindow.destroy();

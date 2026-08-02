@@ -143,8 +143,17 @@ function handleMessage(text: string): void {
   const now = Date.now();
   if (now - lastBroadcastAt < BROADCAST_INTERVAL_MS) return;
   lastBroadcastAt = now;
-  outputWindow?.webContents.send(IPC.VMC_FRAME, snapshot);
-  controlWindow?.webContents.send(IPC.VMC_FRAME, snapshot);
+  safeSend(outputWindow, snapshot);
+  safeSend(controlWindow, snapshot);
+}
+
+function safeSend(win: BrowserWindow | null, payload: VmcSnapshot): void {
+  if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return;
+  try {
+    win.webContents.send(IPC.VMC_FRAME, payload);
+  } catch {
+    // Fenster wurde zwischen Check und Send zerstört — ignorieren
+  }
 }
 
 export function parseIfmPacket(text: string): VmcSnapshot | null {

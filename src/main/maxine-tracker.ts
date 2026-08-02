@@ -379,8 +379,19 @@ function handleDatagram(msg: Buffer): void {
     headEuler: null,
     receivedAt: now,
   };
-  outputWindow?.webContents.send(IPC.VMC_FRAME, snapshot);
-  controlWindow?.webContents.send(IPC.VMC_FRAME, snapshot);
+  safeSend(outputWindow, snapshot);
+  safeSend(controlWindow, snapshot);
+}
+
+// Fenster können jederzeit geschlossen werden, während der UDP-Strom weiterläuft —
+// ein send() auf ein zerstörtes Fenster crasht sonst den ganzen Main-Prozess.
+function safeSend(win: BrowserWindow | null, payload: VmcSnapshot): void {
+  if (!win || win.isDestroyed() || win.webContents.isDestroyed()) return;
+  try {
+    win.webContents.send(IPC.VMC_FRAME, payload);
+  } catch {
+    // Fenster wurde zwischen Check und Send zerstört — ignorieren
+  }
 }
 
 function extractCameraJson(stdout: string): unknown[] | null {
