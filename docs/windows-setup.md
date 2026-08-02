@@ -10,13 +10,20 @@ Was es bringt: 53 ARKit-Blendshapes direkt von der RTX-GPU (Tensor Cores), deutl
 MediaPipe bei schrägen Winkeln und schlechtem Licht. Gleiche Technik wie der „NVIDIA Broadcast
 Tracker" von VTube Studio.
 
-1. **AR SDK Redistributable herunterladen**: <https://www.nvidia.com/broadcast-sdk-resources>
-   → „Maxine AR SDK End-User Redistributable" für die eigene GPU-Generation wählen
-   (Ada = RTX 40xx). Installieren.
-2. Nach der Installation liegt die `ExpressionApp.exe` typischerweise unter
-   `C:\Program Files\NVIDIA Corporation\NVIDIA AR SDK\samples\ExpressionApp\` —
-   alternativ das Samples-Paket von GitHub: <https://github.com/NVIDIA-Maxine/Maxine-AR-SDK>
-   (Release-Assets enthalten gebaute Samples).
+⚠️ Zwei Teile nötig — beides ist kostenlos, kommt aber NICHT mit dem BabaAvatar-Update mit
+(NVIDIA erlaubt kein Mitbundeln):
+
+1. **AR SDK Redistributable** (Laufzeit-DLLs + KI-Modelle) für RTX 40xx/Ada direkt laden und
+   installieren:
+   <https://international.download.nvidia.com/Windows/broadcast/sdk/AR/nvidia_ar_sdk_installer_v0.8.7_ada.exe>
+   (Übersicht aller GPU-Generationen: <https://www.nvidia.com/en-us/geforce/broadcasting/broadcast-sdk/resources/>)
+2. **ExpressionApp.exe** besorgen — NVIDIA liefert sie nicht als fertiges Binary (GitHub-Repo
+   ist Quellcode zum Selberbauen). Der einfache Weg ist das kostenlose Steam-DLC:
+   Steam → **VTube Studio** (kostenlos) installieren → DLC **„VTube Studio – NVIDIA Broadcast
+   Tracker"** (kostenlos) dazu installieren → danach im VTube-Studio-Ordner nach
+   `ExpressionApp.exe` suchen (typisch `…\Steam\steamapps\common\VTube Studio\`,
+   Unterordner des NVIDIA-Trackers). Alternativ selbst bauen:
+   <https://github.com/NVIDIA-Maxine/Maxine-AR-SDK> (Visual Studio + CMake).
 3. In BabaAvatar: **Einstellungen → Tracking → Tracking-Engine: „NVIDIA Broadcast (RTX-GPU)"**
    → „ExpressionApp.exe wählen…" → Pfad setzen → „Kameras suchen" → Kamera + Modus wählen.
    Die App startet den Sidecar automatisch und empfängt die Daten per UDP (Port 9140, nur
