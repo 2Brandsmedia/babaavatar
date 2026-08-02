@@ -3,6 +3,7 @@ import { useTrackingStore } from '@renderer/store/tracking';
 import { useSettingsStore } from '@renderer/store/settings';
 import { TrackingOverlay } from '@renderer/components/webcam-preview/TrackingOverlay';
 import { PerformanceProfiler } from '@renderer/components/profiler/PerformanceProfiler';
+import { TrackingDiagnostics } from '@renderer/components/TrackingDiagnostics';
 
 export const TrackingPanel = memo(function TrackingPanel(): JSX.Element {
   const {
@@ -156,6 +157,8 @@ export const TrackingPanel = memo(function TrackingPanel(): JSX.Element {
         <div>Lipsync: {lipsyncReady ? 'aktiv' : lipsyncEnabled ? 'startet…' : 'aus'}</div>
         {lipsyncError && <div style={{ color: '#ff7878' }}>Lipsync-Fehler: {lipsyncError}</div>}
       </div>
+
+      <TrackingDiagnostics />
 
       <PerformanceProfiler />
     </div>

@@ -26,8 +26,10 @@ asarUnpack:
 # Mac-Updates werden manuell per .dmg installiert.
 mac:
   category: public.app-category.video
+  # Nur das App-Bundle bauen — die DMGs entstehen per hdiutil (electron-builders
+  # dmg-Schritt braucht ein Python, das auf dem Build-Mac fehlt).
   target:
-    - target: dmg
+    - target: dir
       arch:
         - arm64
         - x64

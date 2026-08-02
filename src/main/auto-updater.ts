@@ -40,6 +40,13 @@ let pendingVersion: string | null = null;
 let ipcRegistered = false;
 
 export function initAutoUpdater({ controlWindow }: UpdaterOptions): void {
+  // macOS: Auto-Update braucht eine signierte App (electron-updater verweigert sonst)
+  // und wir veröffentlichen keine latest-mac.yml — Updates laufen manuell per .dmg.
+  // Ohne diesen Guard zeigt jeder Mac-Start einen Update-Fehler-Dialog.
+  if (process.platform === 'darwin') {
+    log.info('Auto-Updater auf macOS deaktiviert — Updates manuell per .dmg');
+    return;
+  }
   currentWindow = controlWindow;
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
